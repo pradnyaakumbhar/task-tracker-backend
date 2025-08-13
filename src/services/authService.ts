@@ -1,0 +1,62 @@
+import jwt from 'jsonwebtoken';
+import userDao from '../dao/userDao';
+import bcrypt from 'bcryptjs';
+
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+interface AuthResult {
+  token: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+const generateToken = (userId: number, email: string): string => {
+  return jwt.sign(
+    { userId, email },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+};
+
+const authService = {
+    verifyToken : (token: string): any => {
+        return jwt.verify(token, JWT_SECRET);
+    },
+
+    registerUser : async (name: string, email: string, password: string): Promise<AuthResult> => {
+        // Check if user already exists
+        const existingUser = await userDao.findUserByEmail(email);
+        if (existingUser) {
+            throw new Error('User with this email already exists');
+        }
+
+        // Hash password
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        // Create user
+        const user = await userDao.createUser({
+            name,
+            email,
+            password: hashedPassword
+        });
+
+        // Generate JWT token
+        const token = generateToken(user.id, user.email);
+
+        return {
+            token,
+            user: {
+            id: user.id,
+            name: user.name,
+            email: user.email
+            }
+        };
+    }
+
+}
+
+export default authService;
