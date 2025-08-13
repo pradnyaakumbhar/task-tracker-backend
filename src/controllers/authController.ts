@@ -34,6 +34,29 @@ const authcontroller = {
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }
+    },
+
+    login : async (req: Request, res: Response) => {
+        try {
+            const {email, password} = req.body;
+
+            if(!email || !password) {
+                return res.status(400).json({ 
+                    error: 'Email and Password are required' 
+                });
+            }
+
+            const result = await authService.loginUser(email, password)
+
+            res.status(201).json({
+                message: 'Login successfull',
+                token: result.token,
+                user: result.user
+            });
+
+        } catch (error: any) {
+            return res.status(400).json({ error: error.message });
+        }
     }
 }
 

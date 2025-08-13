@@ -17,7 +17,7 @@ const generateToken = (userId: number, email: string): string => {
   return jwt.sign(
     { userId, email },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '1d' }
   );
 };
 
@@ -44,6 +44,31 @@ const authService = {
             password: hashedPassword
         });
 
+        // Generate JWT token
+        const token = generateToken(user.id, user.email);
+
+        return {
+            token,
+            user: {
+            id: user.id,
+            name: user.name,
+            email: user.email
+            }
+        };
+    },
+
+    loginUser : async (email: string, password: string): Promise<AuthResult> => {
+        // Check if user already exists
+        const user = await userDao.findUserByEmail(email);
+        if (!user) {
+            throw new Error('Invalid email or password');
+        }
+        // chek if password is correct
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            throw new Error('Invalid email or password');
+        }
+        
         // Generate JWT token
         const token = generateToken(user.id, user.email);
 
