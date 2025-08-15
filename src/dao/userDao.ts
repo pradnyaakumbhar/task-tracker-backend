@@ -7,6 +7,14 @@ interface CreateUserData {
   password: string;
 }
 
+interface UserWithoutPassword {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 const userDao = {
     createUser : async (userData: CreateUserData): Promise<User> => {
         return await prisma.user.create({
@@ -17,6 +25,44 @@ const userDao = {
     findUserByEmail : async (email: string): Promise<User | null> => {
         return await prisma.user.findUnique({
             where: { email }
+        });
+    },
+
+    findUserById : async (id: number): Promise<UserWithoutPassword | null> => {
+        return await prisma.user.findUnique({
+            where: { id },
+            select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true
+            }
+        });
+    },
+
+    updateUser : async (id: number, data: Partial<CreateUserData>): Promise<User> => {
+        return await prisma.user.update({
+            where: { id },
+            data
+        });
+    },
+
+    deleteUser : async (id: number): Promise<User> => {
+        return await prisma.user.delete({
+            where: { id }
+        });
+    },
+
+    findAllUsers : async (): Promise<UserWithoutPassword[]> => {
+        return await prisma.user.findMany({
+            select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true
+            }
         });
     }
 };
