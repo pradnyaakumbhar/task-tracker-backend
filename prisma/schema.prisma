@@ -8,13 +8,113 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User Table
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String   
-  email     String   @unique @db.VarChar(255)
-  password  String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id               String      @id @default(uuid())
+  name             String
+  email            String      @unique
+  password         String
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  ownedWorkspaces  Workspace[] @relation("WorkspaceOwner")
+  memberWorkspaces Workspace[] @relation("WorkspaceMember")
+  createdTasks     Task[]      @relation("TaskCreator")
+  assignedTasks    Task[]      @relation("TaskAssignee")
+  reportedTasks    Task[]      @relation("TaskReporter")
 
   @@map("users")
+}
+
+// Workspace Table 
+model Workspace {
+  id           String       @id @default(uuid())
+  name         String
+  description  String?
+  number       String       @unique
+  memberEmails String[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  ownerId      String
+  owner        User         @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      User[]       @relation("WorkspaceMember")
+  spaces       Space[]
+  invitations  Invitation[]
+
+  @@map("workspaces")
+}
+
+// 3. Space Table
+model Space {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  color       String    @default("#3B82F6")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@map("spaces")
+}
+
+// 4. Task Table 
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  comment     String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  tags        String[]
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  spaceId     String
+  space       Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  creatorId   String
+  creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
+  assigneeId  String?
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reporterId  String
+  reporter    User       @relation("TaskReporter", fields: [reporterId], references: [id])
+
+  @@map("tasks")
+}
+
+// Invitation Table
+model Invitation {
+  id          String       @id @default(cuid())
+  email       String
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  status      InviteStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  expiresAt   DateTime
+
+  @@unique([email, workspaceId])
+  @@map("invitations")
+}
+
+// Enums
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
 }
