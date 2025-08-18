@@ -18,13 +18,21 @@ interface UserWithoutPassword {
 const userDao = {
     createUser : async (userData: CreateUserData): Promise<User> => {
         return await prisma.user.create({
-            data: userData
+            data: userData,
         });
     },
 
     findUserByEmail : async (email: string): Promise<User | null> => {
         return await prisma.user.findUnique({
-            where: { email }
+            where: { email },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                password: true,
+                createdAt: true,
+                updatedAt: true
+            }
         });
     },
 
@@ -37,6 +45,19 @@ const userDao = {
             email: true,
             createdAt: true,
             updatedAt: true
+            }
+        });
+    },
+
+    findUsersByEmails : async (emails: string[]) => {
+        return await prisma.user.findMany({
+            where: {
+                email: { in: emails }
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true
             }
         });
     },
