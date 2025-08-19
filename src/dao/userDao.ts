@@ -75,15 +75,28 @@ const userDao = {
         });
     },
 
-    findAllUsers : async (): Promise<UserWithoutPassword[]> => {
-        return await prisma.user.findMany({
-            select: {
-            id: true,
-            name: true,
-            email: true,
-            createdAt: true,
-            updatedAt: true
-            }
+    findWorkspacesByUserId : async (userId: string) => {
+        return await prisma.workspace.findMany({
+            where: {
+            OR: [
+                { ownerId: userId },
+                { members: { some: { id: userId } } }
+            ]
+            },
+            include: {
+                owner: { select: { id: true, name: true, email: true } },
+                members: { select: { id: true, name: true, email: true } },
+                spaces: {
+                    select: {
+                        id: true,
+                        name: true,
+                        color: true,
+                        _count: { select: { tasks: true } }
+                    }
+                },
+                _count: { select: { spaces: true, members: true } }
+            },
+            orderBy: { createdAt: 'desc' }
         });
     }
 };
