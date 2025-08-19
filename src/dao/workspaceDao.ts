@@ -1,4 +1,4 @@
-import { User } from '../generated/prisma';
+import { Workspace } from '../generated/prisma';
 import prisma from '../utils/prisma';
 
 export interface CreateWorkspaceData {
@@ -23,6 +23,23 @@ const workspaceDao = {
                 owner: { select: { id: true, name: true, email: true } },
                 members: { select: { id: true, name: true, email: true } },
                 _count: { select: { spaces: true } }
+            }
+        });
+    },
+
+    findWorkspaceById : async (workspaceId: string) => {
+        return await prisma.workspace.findUnique({
+            where: { id: workspaceId },
+            include: {
+                owner: { select: { id: true, name: true, email: true } },
+                members: { select: { id: true, name: true, email: true } },
+                spaces: {
+                    include: {
+                    _count: { select: { tasks: true } }
+                    },
+                    orderBy: { createdAt: 'asc' }
+                },
+                _count: { select: { spaces: true, members: true } }
             }
         });
     },
@@ -74,6 +91,16 @@ const workspaceDao = {
                     { ownerId: userId },
                     { members: { some: { id: userId } } }
                 ]
+            }
+        });
+        return !!workspace;
+    },
+
+    isUserWorkspaceOwner : async (userId: string, workspaceId: string) => {
+        const workspace = await prisma.workspace.findFirst({
+            where: {
+                id: workspaceId,
+                ownerId: userId
             }
         });
         return !!workspace;
