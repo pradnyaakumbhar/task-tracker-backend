@@ -1,0 +1,83 @@
+import { User } from '../generated/prisma';
+import prisma from '../utils/prisma';
+
+export interface CreateWorkspaceData {
+  name: string;
+  description?: string;
+  number: string;
+  ownerId: string;
+  memberEmails: string[];
+}
+
+const workspaceDao = {
+    createWorkspace : async (data: CreateWorkspaceData) => {
+        return await prisma.workspace.create({
+            data: {
+                name: data.name,
+                description: data.description,
+                number: data.number,
+                ownerId: data.ownerId,
+                memberEmails: data.memberEmails,
+            },
+            include: {
+                owner: { select: { id: true, name: true, email: true } },
+                members: { select: { id: true, name: true, email: true } },
+                _count: { select: { spaces: true } }
+            }
+        });
+    },
+
+    findWorkspacesByUserId : async (userId: string) => {
+        return await prisma.workspace.findMany({
+            where: {
+                OR: [
+                    { ownerId: userId },
+                    { members: { some: { id: userId } } }
+                ]
+            },
+            include: {
+                owner: { select: { id: true, name: true, email: true } },
+                members: { select: { id: true, name: true, email: true } },
+                spaces: {
+                    select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                    _count: { select: { tasks: true } }
+                    }
+                },
+                _count: { select: { spaces: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    },
+
+    addMembersToWorkspace : async (workspaceId: string, userIds: string[]) => {
+        return await prisma.workspace.update({
+            where: { id: workspaceId },
+            data: {
+                members: {
+                    connect: userIds.map(id => ({ id }))
+                }
+            },
+            include: {
+                members: { select: { id: true, name: true, email: true } }
+            }
+        });
+    },
+
+    checkUserWorkspaceAccess : async (userId: string, workspaceId: string) => {
+        const workspace = await prisma.workspace.findFirst({
+            where: {
+                id: workspaceId,
+                OR: [
+                    { ownerId: userId },
+                    { members: { some: { id: userId } } }
+                ]
+            }
+        });
+        return !!workspace;
+    }
+}
+
+export default workspaceDao;

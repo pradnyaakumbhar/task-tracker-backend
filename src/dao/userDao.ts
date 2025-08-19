@@ -18,13 +18,21 @@ interface UserWithoutPassword {
 const userDao = {
     createUser : async (userData: CreateUserData): Promise<User> => {
         return await prisma.user.create({
-            data: userData
+            data: userData,
         });
     },
 
     findUserByEmail : async (email: string): Promise<User | null> => {
         return await prisma.user.findUnique({
-            where: { email }
+            where: { email },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                password: true,
+                createdAt: true,
+                updatedAt: true
+            }
         });
     },
 
@@ -37,6 +45,19 @@ const userDao = {
             email: true,
             createdAt: true,
             updatedAt: true
+            }
+        });
+    },
+
+    findUsersByEmails : async (emails: string[]) => {
+        return await prisma.user.findMany({
+            where: {
+                email: { in: emails }
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true
             }
         });
     },
@@ -54,15 +75,28 @@ const userDao = {
         });
     },
 
-    findAllUsers : async (): Promise<UserWithoutPassword[]> => {
-        return await prisma.user.findMany({
-            select: {
-            id: true,
-            name: true,
-            email: true,
-            createdAt: true,
-            updatedAt: true
-            }
+    findWorkspacesByUserId : async (userId: string) => {
+        return await prisma.workspace.findMany({
+            where: {
+            OR: [
+                { ownerId: userId },
+                { members: { some: { id: userId } } }
+            ]
+            },
+            include: {
+                owner: { select: { id: true, name: true, email: true } },
+                members: { select: { id: true, name: true, email: true } },
+                spaces: {
+                    select: {
+                        id: true,
+                        name: true,
+                        color: true,
+                        _count: { select: { tasks: true } }
+                    }
+                },
+                _count: { select: { spaces: true, members: true } }
+            },
+            orderBy: { createdAt: 'desc' }
         });
     }
 };

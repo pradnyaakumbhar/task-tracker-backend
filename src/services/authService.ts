@@ -7,13 +7,13 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 interface AuthResult {
   token: string;
   user: {
-    id: number;
+    id: string;
     name: string;
     email: string;
   };
 }
 
-const generateToken = (userId: number, email: string): string => {
+const generateToken = (userId: string, email: string): string => {
   return jwt.sign(
     { userId, email },
     JWT_SECRET,
