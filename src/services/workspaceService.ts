@@ -1,4 +1,5 @@
 import workspaceDao from '../dao/workspaceDao'
+import invitationDao from '../dao/invitationDao'
 import userDao from '../dao/userDao'
 
 const workspaceService = {
@@ -27,9 +28,62 @@ const workspaceService = {
       }
 
       // Create invitations for non-existing users
+      const newUserEmails = memberEmails.filter(
+        (email) => !existingUserEmails.includes(email)
+      )
+
+      for (const email of newUserEmails) {
+        try {
+          // Check if invitation already exists
+          const existingInvitation = await invitationDao.findExistingInvitation(
+            email,
+            workspace.id
+          )
+          if (!existingInvitation) {
+            await invitationDao.createInvitation({
+              email,
+              workspaceId: workspace.id,
+            })
+          }
+        } catch (error) {
+          console.error(`Failed to create invitation for ${email}:`, error)
+        }
+      }
       // Send email invites to all members
     }
     return workspace
+  },
+
+  getWorkspaceDetails: async (workspaceId: string, userId: string) => {
+    // Check if user has access to this workspace
+    const hasAccess = await workspaceDao.checkUserWorkspaceAccess(
+      userId,
+      workspaceId
+    )
+    if (!hasAccess) {
+      throw new Error('Access denied to this workspace')
+    }
+
+    const workspace = await workspaceDao.findWorkspaceById(workspaceId)
+
+    if (!workspace) {
+      throw new Error('Workspace not found')
+    }
+
+    return workspace
+  },
+
+  getWorkspaceSpaces: async (workspaceId: string, userId: string) => {
+    // Validate workspace access
+    const hasAccess = await workspaceDao.checkUserWorkspaceAccess(
+      userId,
+      workspaceId
+    )
+    if (!hasAccess) {
+      throw new Error('Access denied to this workspace')
+    }
+
+    return await workspaceDao.findSpacesByWorkspaceId(workspaceId)
   },
 }
 

@@ -1,12 +1,12 @@
-import express from 'express';
-import workspaceController from '../controllers/authController';
-import { authenticateToken } from '../middleware/authMiddleware';
+import express from 'express'
+import workspaceController from '../controllers/workspaceController'
+import { authenticateToken } from '../middleware/authMiddleware'
 
-const router = express.Router();
-router.use(authenticateToken); // Apply authentication to all workspace routes
+const router = express.Router()
+router.use(authenticateToken) // Apply authentication to all workspace routes
 
-// router.post('/create', workspaceController.createWorkspace);
-// router.post('/details', workspaceController.getDetails);
-// router.get('/spaces', workspaceController.getSpaces);
+router.post('/create', workspaceController.createWorkspace)
+router.post('/details', workspaceController.getWorkspaceDetails)
+router.get('/spaces', workspaceController.getSpaces)
 
-export default router;
+export default router
