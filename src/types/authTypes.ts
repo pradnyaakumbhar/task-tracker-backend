@@ -1,3 +1,4 @@
+import { Request } from 'express';
 export interface Register {
   name: string;
   email: string;
@@ -20,4 +21,8 @@ export interface AuthenticatedUser {
   id: string;
   name: string;
   email: string;
+}
+
+export interface AuthRequest extends Request {
+  user?: any;
 }

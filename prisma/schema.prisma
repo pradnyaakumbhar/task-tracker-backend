@@ -48,13 +48,14 @@ model Space {
   id          String    @id @default(cuid())
   name        String
   description String?
-  color       String    @default("#3B82F6")
+  spaceNumber Int 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   tasks       Task[]
 
+  @@unique([workspaceId, spaceNumber])
   @@map("spaces")
 }
 
@@ -70,6 +71,7 @@ model Task {
   dueDate     DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  taskNumber  Int
   spaceId     String
   space       Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   creatorId   String
@@ -79,6 +81,7 @@ model Task {
   reporterId  String
   reporter    User       @relation("TaskReporter", fields: [reporterId], references: [id])
 
+  @@unique([spaceId, taskNumber])
   @@map("tasks")
 }
 

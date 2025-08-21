@@ -1,5 +1,5 @@
-import spaceDao from "../dao/spaceDao";
-
+import spaceDao from '../dao/spaceDao'
+import workspaceService from './workspaceService'
 const spaceService = {}
 
-export default spaceService;
+export default spaceService

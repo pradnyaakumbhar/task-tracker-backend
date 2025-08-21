@@ -1,16 +1,19 @@
-import express, {Request, Response} from "express";
-import authRoutes from './authRoutes';
+import express, { Request, Response } from 'express'
+import authRoutes from './authRoutes'
 import userRoutes from './userRoutes'
-const router = express.Router();
+import workspaceRoutes from './workspaceRoutes'
+
+const router = express.Router()
 
 router.get('/health', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Server is running',
-    timestamp: new Date().toISOString()
-  });
-});
+    timestamp: new Date().toISOString(),
+  })
+})
 
-router.use('/auth', authRoutes);
+router.use('/auth', authRoutes)
 router.use('/user', userRoutes)
-export default router;
+router.use('/workspace', workspaceRoutes)
+export default router
