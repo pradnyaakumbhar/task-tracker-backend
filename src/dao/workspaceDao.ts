@@ -1,21 +1,22 @@
 import { Workspace } from '../generated/prisma';
 import prisma from '../utils/prisma';
+import generateNumbers from "../utils/generateNumbers";
 
 export interface CreateWorkspaceData {
   name: string;
   description?: string;
-  number: string;
   ownerId: string;
   memberEmails: string[];
 }
 
 const workspaceDao = {
     createWorkspace : async (data: CreateWorkspaceData) => {
+        const number = await generateNumbers.generateWorkspaceNumber();
         return await prisma.workspace.create({
             data: {
                 name: data.name,
                 description: data.description,
-                number: data.number,
+                number: number,
                 ownerId: data.ownerId,
                 memberEmails: data.memberEmails,
             },
@@ -24,6 +25,12 @@ const workspaceDao = {
                 members: { select: { id: true, name: true, email: true } },
                 _count: { select: { spaces: true } }
             }
+        });
+    },
+
+    findWorkspaceByNumber : async (number: string) => {
+        return await prisma.workspace.findUnique({
+            where: { number }
         });
     },
 
@@ -59,7 +66,6 @@ const workspaceDao = {
                     select: {
                     id: true,
                     name: true,
-                    color: true,
                     _count: { select: { tasks: true } }
                     }
                 },
