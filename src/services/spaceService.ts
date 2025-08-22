@@ -16,6 +16,25 @@ const spaceService = {
       workspaceId,
     })
   },
+
+  getSpaceDetails: async (spaceId: string, userId: string) => {
+    const space = await spaceDao.findSpaceById(spaceId)
+    if (!space) {
+      throw new Error('Space not found')
+    }
+
+    // Validate workspace access
+    await workspaceService.validateWorkspaceAccess(userId, space.workspace.id)
+
+    return space
+  },
+
+  getTasksBySpace: async (spaceId: string, userId: string) => {
+    // Verify space access
+    await spaceService.getSpaceDetails(spaceId, userId)
+
+    return await spaceDao.findTasksBySpaceId(spaceId)
+  },
 }
 
 export default spaceService

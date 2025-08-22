@@ -27,6 +27,44 @@ const spaceDao = {
       },
     })
   },
+
+  findSpaceById: async (spaceId: string) => {
+    return await prisma.space.findUnique({
+      where: { id: spaceId },
+      include: {
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            number: true,
+            ownerId: true,
+            members: { select: { id: true } },
+          },
+        },
+        _count: { select: { tasks: true } },
+      },
+    })
+  },
+
+  findTasksBySpaceId: async (spaceId: string) => {
+    return await prisma.task.findMany({
+      where: { spaceId },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true } },
+        reporter: { select: { id: true, name: true, email: true } },
+        space: {
+          select: {
+            id: true,
+            name: true,
+            spaceNumber: true,
+            workspace: { select: { id: true, name: true, number: true } },
+          },
+        },
+      },
+      orderBy: { taskNumber: 'asc' },
+    })
+  },
 }
 
 export default spaceDao
