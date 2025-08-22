@@ -85,6 +85,17 @@ const workspaceService = {
 
     return await workspaceDao.findSpacesByWorkspaceId(workspaceId)
   },
+
+  validateWorkspaceAccess: async (userId: string, workspaceId: string) => {
+    const hasAccess = await workspaceDao.checkUserWorkspaceAccess(
+      userId,
+      workspaceId
+    )
+    if (!hasAccess) {
+      throw new Error('Access denied to this workspace')
+    }
+    return true
+  },
 }
 
 export default workspaceService
