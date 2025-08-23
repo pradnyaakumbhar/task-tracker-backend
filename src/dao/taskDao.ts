@@ -37,6 +37,33 @@ const taskDao = {
       },
     })
   },
+
+  findTaskById: async (taskId: string) => {
+    return await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true } },
+        reporter: { select: { id: true, name: true, email: true } },
+        space: {
+          select: {
+            id: true,
+            name: true,
+            spaceNumber: true,
+            workspace: {
+              select: {
+                id: true,
+                name: true,
+                number: true,
+                ownerId: true,
+                members: { select: { id: true } },
+              },
+            },
+          },
+        },
+      },
+    })
+  },
 }
 
 export default taskDao
