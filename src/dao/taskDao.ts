@@ -64,6 +64,55 @@ const taskDao = {
       },
     })
   },
+
+  canUserEditTask: async (taskId: string, userId: string): Promise<boolean> => {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        creatorId: true,
+        assigneeId: true,
+        reporterId: true,
+      },
+    })
+
+    if (!task) return false
+
+    return (
+      task.creatorId === userId ||
+      task.assigneeId === userId ||
+      task.reporterId === userId
+    )
+  },
+
+  updateTask: async (taskId: string, data: Partial<CreateTaskData>) => {
+    return await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        title: data.title,
+        description: data.description,
+        comment: data.comment,
+        priority: data.priority,
+        status: data.status,
+        tags: data.tags,
+        dueDate: data.dueDate,
+        assigneeId: data.assigneeId,
+        reporterId: data.reporterId,
+      },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true } },
+        reporter: { select: { id: true, name: true, email: true } },
+        space: {
+          select: {
+            id: true,
+            name: true,
+            spaceNumber: true,
+            workspace: { select: { id: true, name: true, number: true } },
+          },
+        },
+      },
+    })
+  },
 }
 
 export default taskDao
