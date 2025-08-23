@@ -65,6 +65,23 @@ const spaceDao = {
       orderBy: { taskNumber: 'asc' },
     })
   },
+
+  deleteSpace: async (spaceId: string) => {
+    const space = await prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { spaceNumber: true, workspaceId: true },
+    })
+
+    if (!space) {
+      throw new Error('Space not found')
+    }
+
+    await prisma.space.delete({
+      where: { id: spaceId },
+    })
+
+    return { message: 'Space deleted successfully' }
+  },
 }
 
 export default spaceDao

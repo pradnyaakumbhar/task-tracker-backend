@@ -65,6 +65,30 @@ const spaceController = {
       }
     }
   },
+
+  deleteSpace: async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params
+      const userId = req.user!.userId
+
+      if (!id) {
+        return res.status(400).json({ error: 'Space ID is required' })
+      }
+
+      await spaceService.deleteSpace(id, userId)
+
+      res.status(200).json({
+        message: 'Space deleted successfully',
+      })
+    } catch (error) {
+      console.error('Delete space error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
 }
 
 export default spaceController

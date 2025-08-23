@@ -35,6 +35,18 @@ const spaceService = {
 
     return await spaceDao.findTasksBySpaceId(spaceId)
   },
+
+  deleteSpace: async (spaceId: string, userId: string) => {
+    const space = await spaceDao.findSpaceById(spaceId)
+    if (!space) {
+      throw new Error('Space not found')
+    }
+
+    // Validate workspace access
+    await workspaceService.validateWorkspaceAccess(userId, space.workspace.id)
+
+    return await spaceDao.deleteSpace(spaceId)
+  },
 }
 
 export default spaceService

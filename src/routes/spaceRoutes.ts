@@ -8,7 +8,7 @@ router.use(authenticateToken)
 
 router.post('/create', spaceController.createSpace)
 router.post('/tasks', spaceController.getTasks)
-// router.delete('/:id', spaceController.deleteSpace);
+router.delete('/delete/:id', spaceController.deleteSpace)
 // router.put('/:id', spaceController.updateSpace);
 
 export default router
