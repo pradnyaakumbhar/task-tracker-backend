@@ -47,6 +47,22 @@ const spaceService = {
 
     return await spaceDao.deleteSpace(spaceId)
   },
+
+  updateSpace: async (
+    spaceId: string,
+    updateData: { name?: string; description?: string },
+    userId: string
+  ) => {
+    const space = await spaceDao.findSpaceById(spaceId)
+    if (!space) {
+      throw new Error('Space not found')
+    }
+
+    // Validate workspace access
+    await workspaceService.validateWorkspaceAccess(userId, space.workspace.id)
+
+    return await spaceDao.updateSpace(spaceId, updateData)
+  },
 }
 
 export default spaceService

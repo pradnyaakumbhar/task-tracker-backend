@@ -82,6 +82,17 @@ const spaceDao = {
 
     return { message: 'Space deleted successfully' }
   },
+
+  updateSpace: async (spaceId: string, data: Partial<CreateSpaceData>) => {
+    return await prisma.space.update({
+      where: { id: spaceId },
+      data,
+      include: {
+        workspace: { select: { id: true, name: true, number: true } },
+        _count: { select: { tasks: true } },
+      },
+    })
+  },
 }
 
 export default spaceDao

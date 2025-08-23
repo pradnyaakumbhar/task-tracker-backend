@@ -89,6 +89,46 @@ const spaceController = {
       }
     }
   },
+
+  updateSpace: async (req: AuthRequest, res: Response) => {
+    try {
+      const { id, name, description } = req.body
+      const userId = req.user!.userId
+
+      if (!id) {
+        return res.status(400).json({ error: 'Space ID is required' })
+      }
+
+      const updateData: any = {}
+      if (name) updateData.name = name
+      if (description !== undefined) updateData.description = description
+
+      if (Object.keys(updateData).length === 0) {
+        return res
+          .status(400)
+          .json({ error: 'At least one field to update is required' })
+      }
+
+      const space = await spaceService.updateSpace(id, updateData, userId)
+
+      res.status(200).json({
+        message: 'Space updated successfully',
+        space: {
+          id: space.id,
+          name: space.name,
+          spaceNumber: generateNumbers.formatSpaceNumber(space.spaceNumber),
+          workspaceNumber: space.workspace.number,
+        },
+      })
+    } catch (error) {
+      console.error('Update space error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
 }
 
 export default spaceController
