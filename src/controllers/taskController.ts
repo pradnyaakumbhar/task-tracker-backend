@@ -262,6 +262,30 @@ const taskController = {
       }
     }
   },
+
+  deleteTask: async (req: AuthRequest, res: Response) => {
+    try {
+      const { taskId } = req.params
+      const userId = req.user!.userId
+
+      if (!taskId) {
+        return res.status(400).json({ error: 'Task ID is required' })
+      }
+
+      await taskService.deleteTask(taskId, userId)
+
+      res.status(200).json({
+        message: 'Task deleted successfully',
+      })
+    } catch (error) {
+      console.error('Delete task error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
 }
 
 export default taskController

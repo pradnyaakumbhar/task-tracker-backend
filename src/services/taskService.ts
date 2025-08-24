@@ -45,6 +45,16 @@ const taskService = {
 
     return updatedTask
   },
+
+  deleteTask: async (taskId: string, userId: string) => {
+    // Only creator can delete tasks
+    const isCreator = await taskDao.isTaskCreator(taskId, userId)
+    if (!isCreator) {
+      throw new Error('Only task creator can delete this task')
+    }
+
+    return await taskDao.deleteTask(taskId)
+  },
 }
 
 export default taskService

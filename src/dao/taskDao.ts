@@ -113,6 +113,32 @@ const taskDao = {
       },
     })
   },
+
+  isTaskCreator: async (taskId: string, userId: string): Promise<boolean> => {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { creatorId: true },
+    })
+
+    return task?.creatorId === userId || false
+  },
+
+  deleteTask: async (taskId: string) => {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { taskNumber: true, spaceId: true },
+    })
+
+    if (!task) {
+      throw new Error('Task not found')
+    }
+
+    await prisma.task.delete({
+      where: { id: taskId },
+    })
+
+    return { message: 'Task deleted' }
+  },
 }
 
 export default taskDao
