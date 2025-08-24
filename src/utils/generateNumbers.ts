@@ -24,6 +24,19 @@ const generateNumbers = {
   formatSpaceNumber(spaceNumber: number): string {
     return `S${spaceNumber}`
   },
+
+  async generateTaskNumber(spaceId: string): Promise<number> {
+    const result = await prisma.task.aggregate({
+      where: { spaceId },
+      _max: { taskNumber: true },
+    })
+
+    return (result._max.taskNumber || 0) + 1
+  },
+
+  formatTaskNumber(taskNumber: number): string {
+    return `T${taskNumber}`
+  },
 }
 
 export default generateNumbers
