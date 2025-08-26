@@ -90,7 +90,6 @@ const userDao = {
                     select: {
                         id: true,
                         name: true,
-                        color: true,
                         _count: { select: { tasks: true } }
                     }
                 },

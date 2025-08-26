@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import userService from '../services/userService';
-import { AuthRequest } from '../middleware/authMiddleware';
+import { AuthRequest } from '../types/authTypes';
 
 const userController = {
   getProfile : async (req: any, res: Response) => {

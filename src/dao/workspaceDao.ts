@@ -96,6 +96,20 @@ const workspaceDao = {
     return !!workspace
   },
 
+  checkUserWorkspaceAccessByEmail: async (email: string, workspaceId: string): Promise<boolean> => {
+      const workspace = await prisma.workspace.findFirst({
+        where: {
+          id: workspaceId,
+          OR: [
+            { owner: { email } },
+            { members: { some: { email } } }
+          ]
+        }
+      });
+      
+      return !!workspace;
+  },
+
   isUserWorkspaceOwner: async (userId: string, workspaceId: string) => {
     const workspace = await prisma.workspace.findFirst({
       where: {
