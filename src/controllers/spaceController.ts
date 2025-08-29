@@ -1,7 +1,6 @@
 import spaceService from '../services/spaceService'
 import { AuthRequest } from '../types/authTypes'
 import { Response } from 'express'
-import generateNumbers from '../utils/generateNumbers'
 
 const spaceController = {
   createSpace: async (req: AuthRequest, res: Response) => {
@@ -27,7 +26,7 @@ const spaceController = {
         space: {
           id: space.id,
           name: space.name,
-          spaceNumber: generateNumbers.formatSpaceNumber(space.spaceNumber),
+          spaceNumber: space.spaceNumber,
           workspaceNumber: space.workspace.number,
         },
       })
@@ -116,7 +115,7 @@ const spaceController = {
         space: {
           id: space.id,
           name: space.name,
-          spaceNumber: generateNumbers.formatSpaceNumber(space.spaceNumber),
+          spaceNumber: space.spaceNumber,
           workspaceNumber: space.workspace.number,
         },
       })

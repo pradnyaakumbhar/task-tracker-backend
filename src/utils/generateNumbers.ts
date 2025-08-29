@@ -12,17 +12,25 @@ const generateNumbers = {
     return `WS${nextNumber}`
   },
 
-  async generateSpaceNumber(workspaceId: string): Promise<number> {
-    const result = await prisma.space.aggregate({
-      where: { workspaceId },
-      _max: { spaceNumber: true },
+  async generateSpaceNumber(workspaceId: string): Promise<string> {
+    const spaces = await prisma.space.findMany({
+      where: { 
+        workspaceId,
+        spaceNumber: {
+          startsWith: 'S'
+        }
+      },
+      select: { spaceNumber: true },
+      orderBy: { spaceNumber: 'desc' },
+      take: 1
     })
-
-    return (result._max.spaceNumber || 0) + 1
-  },
-
-  formatSpaceNumber(spaceNumber: number): string {
-    return `S${spaceNumber}`
+  
+    if (spaces.length === 0) {
+      return 'S1'
+    }
+  
+    const latestNumber = parseInt(spaces[0].spaceNumber.substring(1))
+    return `S${latestNumber + 1}`
   },
 
   async generateTaskNumber(spaceId: string): Promise<number> {

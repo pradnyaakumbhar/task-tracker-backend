@@ -84,12 +84,11 @@ const userDao = {
             ]
             },
             include: {
-                owner: { select: { id: true, name: true, email: true } },
-                members: { select: { id: true, name: true, email: true } },
                 spaces: {
                     select: {
                         id: true,
                         name: true,
+                        spaceNumber: true,
                         _count: { select: { tasks: true } }
                     }
                 },

@@ -8,7 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Table
 model User {
   id               String      @id @default(uuid())
   name             String
@@ -16,16 +15,15 @@ model User {
   password         String
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  assignedTasks    Task[]      @relation("TaskAssignee")
+  createdTasks     Task[]      @relation("TaskCreator")
+  reportedTasks    Task[]      @relation("TaskReporter")
   ownedWorkspaces  Workspace[] @relation("WorkspaceOwner")
   memberWorkspaces Workspace[] @relation("WorkspaceMember")
-  createdTasks     Task[]      @relation("TaskCreator")
-  assignedTasks    Task[]      @relation("TaskAssignee")
-  reportedTasks    Task[]      @relation("TaskReporter")
 
   @@map("users")
 }
 
-// Workspace Table 
 model Workspace {
   id           String       @id @default(uuid())
   name         String
@@ -35,20 +33,19 @@ model Workspace {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   ownerId      String
+  invitations  Invitation[]
+  spaces       Space[]
   owner        User         @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members      User[]       @relation("WorkspaceMember")
-  spaces       Space[]
-  invitations  Invitation[]
 
   @@map("workspaces")
 }
 
-// 3. Space Table
 model Space {
   id          String    @id @default(cuid())
   name        String
   description String?
-  spaceNumber Int 
+  spaceNumber String    @unique
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   workspaceId String
@@ -59,7 +56,6 @@ model Space {
   @@map("spaces")
 }
 
-// 4. Task Table 
 model Task {
   id          String     @id @default(cuid())
   title       String
@@ -73,33 +69,31 @@ model Task {
   updatedAt   DateTime   @updatedAt
   taskNumber  Int
   spaceId     String
-  space       Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   creatorId   String
-  creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
   assigneeId  String?
-  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
   reporterId  String
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
   reporter    User       @relation("TaskReporter", fields: [reporterId], references: [id])
+  space       Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, taskNumber])
   @@map("tasks")
 }
 
-// Invitation Table
 model Invitation {
   id          String       @id @default(cuid())
   email       String
   workspaceId String
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   status      InviteStatus @default(PENDING)
   createdAt   DateTime     @default(now())
   expiresAt   DateTime
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([email, workspaceId])
   @@map("invitations")
 }
 
-// Enums
 enum TaskStatus {
   TODO
   IN_PROGRESS
