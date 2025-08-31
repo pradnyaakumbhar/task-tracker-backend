@@ -9,7 +9,7 @@ export interface CreateSpaceData {
 
 const spaceDao = {
   createSpace: async (data: CreateSpaceData) => {
-    // Generate space number in workspace
+    // Generate space number in workspace, should be unique
     const spaceNumber = await generateNumbers.generateSpaceNumber(
       data.workspaceId
     )

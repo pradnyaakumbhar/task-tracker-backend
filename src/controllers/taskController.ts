@@ -20,10 +20,9 @@ const taskController = {
       } = req.body
       const creatorId = req.user!.userId
 
-      // UPDATED VALIDATION: assigneeId is now required, reporterId is optional
-      if (!title || !spaceId || !assigneeId) {
+      if (!title || !spaceId ) {
         return res.status(400).json({
-          error: 'Title, space ID, and assignee ID are required',
+          error: 'Title and space ID are required',
         })
       }
 
@@ -60,13 +59,12 @@ const taskController = {
         dueDate: dueDate ? new Date(dueDate) : undefined,
         spaceId,
         creatorId,
-        assigneeId, // Now required
-        reporterId: reporterId || creatorId, // Default to creator if not provided
+        assigneeId, 
+        reporterId: reporterId || creatorId, 
       }
 
       const task = await taskService.createTask(taskData, creatorId)
 
-      // Format response exactly as requested
       res.status(201).json({
         message: 'Task created successfully',
         task: {
@@ -79,14 +77,12 @@ const taskController = {
           tags: task.tags,
           dueDate: task.dueDate,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
-          spaceNumber: generateNumbers.formatSpaceNumber(
-            task.space.spaceNumber
-          ),
+          spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
           assignee: {
-            id: task.assignee!.id, // Now guaranteed to exist
-            name: task.assignee!.name,
-            email: task.assignee!.email,
+            id: task.assignee?.id, 
+            name: task.assignee?.name,
+            email: task.assignee?.email,
           },
           reporter: {
             id: task.reporter.id,
@@ -135,9 +131,7 @@ const taskController = {
           tags: task.tags,
           dueDate: task.dueDate,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
-          spaceNumber: generateNumbers.formatSpaceNumber(
-            task.space.spaceNumber
-          ),
+          spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
           assignee: task.assignee
             ? {
@@ -180,7 +174,7 @@ const taskController = {
         return res.status(400).json({ error: 'Task ID is required' })
       }
 
-      // Validate priority if provided
+      // Validate priority 
       if (updateData.priority) {
         const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
         if (!validPriorities.includes(updateData.priority)) {
@@ -191,7 +185,7 @@ const taskController = {
         }
       }
 
-      // Validate status if provided
+      // Validate status 
       if (updateData.status) {
         const validStatuses = [
           'TODO',
@@ -208,14 +202,13 @@ const taskController = {
         }
       }
 
-      // Convert dueDate to Date object if provided
+      // Convert dueDate to Date object
       if (updateData.dueDate) {
         updateData.dueDate = new Date(updateData.dueDate)
       }
 
       const task = await taskService.updateTask(taskId, updateData, userId)
 
-      // Format response exactly as requested
       res.status(200).json({
         message: 'Task updated successfully',
         task: {
@@ -228,9 +221,7 @@ const taskController = {
           tags: task.tags,
           dueDate: task.dueDate,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
-          spaceNumber: generateNumbers.formatSpaceNumber(
-            task.space.spaceNumber
-          ),
+          spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
           assignee: task.assignee
             ? {

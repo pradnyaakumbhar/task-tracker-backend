@@ -106,7 +106,7 @@ const invitationDao = {
       const updatedInvitations = userInvitations.filter(id => id !== invitationId);
       
       if (updatedInvitations.length === 0) {
-        // No more invitations for this user, remove the key
+        // the key
         await deleteKey(userInvitationsKey);
       } else {
         // Update the list

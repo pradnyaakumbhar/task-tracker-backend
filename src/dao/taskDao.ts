@@ -4,7 +4,7 @@ import prisma from '../utils/prisma'
 
 const taskDao = {
   createTask: async (data: CreateTaskData) => {
-    // Generate task number within space
+    // Generate task number within space, should be unique
     const taskNumber = await generateNumbers.generateTaskNumber(data.spaceId)
 
     return await prisma.task.create({
