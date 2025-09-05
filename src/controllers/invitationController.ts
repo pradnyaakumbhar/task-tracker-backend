@@ -74,6 +74,42 @@ const invitationcontroller = {
       })
     }
   },
+
+  // when user is authenticated (inside app)
+  acceptInvitation: async (req: AuthRequest, res: Response) => {
+    try {
+      const { invitationId } = req.body
+      const user = req.user!
+
+      if (!invitationId) {
+        return res.status(400).json({
+          error: 'Invitation ID is required',
+        })
+      }
+
+      const result = await invitationService.acceptInvitation(
+        invitationId,
+        user.userId,
+        user.email
+      )
+
+      if (!result.success) {
+        return res.status(400).json({
+          error: result.error,
+        })
+      }
+
+      res.status(200).json({
+        message: 'Invitation accepted successfully',
+        workspace: result.workspace,
+      })
+    } catch (error: any) {
+      console.error('Accept invitation error:', error)
+      res.status(500).json({
+        error: 'Failed to accept invitation',
+      })
+    }
+  },
 }
 
 export default invitationcontroller
