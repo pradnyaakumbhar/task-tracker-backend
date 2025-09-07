@@ -48,6 +48,7 @@ const invitationcontroller = {
     }
   },
 
+  // email link
   handleInvitationLink: async (req: Request, res: Response) => {
     try {
       const { invitationId } = req.params
@@ -66,7 +67,15 @@ const invitationcontroller = {
         authToken
       )
 
-      res.status(200).json(result)
+      // Include workspace number in response for frontend redirect
+      const response = {
+        ...result,
+        ...(result.workspace?.number && {
+          workspaceNumber: result.workspace.number,
+        }),
+      }
+
+      res.status(200).json(response)
     } catch (error: any) {
       console.error('Handle invitation link error:', error)
       res.status(500).json({
@@ -75,7 +84,7 @@ const invitationcontroller = {
     }
   },
 
-  // when user is authenticated (inside app)
+  // when user is authenticated
   acceptInvitation: async (req: AuthRequest, res: Response) => {
     try {
       const { invitationId } = req.body
@@ -99,9 +108,11 @@ const invitationcontroller = {
         })
       }
 
+      // Include workspace number in response for frontend redirect
       res.status(200).json({
         message: 'Invitation accepted successfully',
         workspace: result.workspace,
+        workspaceNumber: result.workspace?.number,
       })
     } catch (error: any) {
       console.error('Accept invitation error:', error)

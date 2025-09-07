@@ -24,6 +24,7 @@ interface InvitationLinkResult {
   invitation?: InvitationData
   message?: string
   workspace?: any
+  workspaceNumber?: string
   error?: string
 }
 const invitationService = {
@@ -155,49 +156,24 @@ const invitationService = {
 
       // Check if user exists in database
       const existingUser = await userDao.findUserByEmail(invitation.email)
-
+      // register
       if (!existingUser) {
-        // User needs to register
         return {
           action: 'register',
           invitation,
         }
       }
 
-      // User exists - check if they have valid auth token
+      // login
       if (!authToken) {
-        // User needs to login
         return {
           action: 'login',
           invitation,
         }
       }
 
-      // Verify token and auto-accept if valid
-      const tokenResult = await invitationService.verifyTokenAndAccept(
-        authToken,
-        invitation,
-        existingUser.id
-      )
-
-      return tokenResult
-    } catch (error) {
-      console.error('Failed to process invitation link:', error)
-      return {
-        action: 'error',
-        error: 'Internal server error',
-      }
-    }
-  },
-
-  verifyTokenAndAccept: async (
-    token: string,
-    invitation: InvitationData,
-    userId: string
-  ): Promise<InvitationLinkResult> => {
-    try {
-      // Verify token using your auth service
-      const tokenPayload = await authService.verifyToken(token)
+      // Verify token and auto-accept
+      const tokenPayload = await authService.verifyToken(authToken)
 
       if (!tokenPayload || tokenPayload.email !== invitation.email) {
         return {
@@ -206,10 +182,25 @@ const invitationService = {
         }
       }
 
+      // Check if user is already a workspace member
+      const isAlreadyMember = await workspaceDao.checkUserWorkspaceAccess(
+        existingUser.id,
+        invitation.workspaceId
+      )
+
+      if (isAlreadyMember) {
+        // Cleanup invitation and redirect to workspace
+        await invitationDao.cleanupInvitation(invitationId, invitation.email)
+        return {
+          action: 'accepted',
+          message: 'You are already a member of this workspace',
+        }
+      }
+
       // Auto-accept the invitation
       const acceptResult = await invitationService.acceptInvitation(
         invitation.id,
-        userId,
+        existingUser.id,
         tokenPayload.email
       )
 
@@ -224,12 +215,13 @@ const invitationService = {
         action: 'accepted',
         message: 'Successfully joined workspace',
         workspace: acceptResult.workspace,
+        workspaceNumber: acceptResult.workspace?.number,
       }
     } catch (error) {
-      console.error('Failed to verify token and accept:', error)
+      console.error('Failed to process invitation link:', error)
       return {
-        action: 'login',
-        invitation,
+        action: 'error',
+        error: 'Internal server error',
       }
     }
   },
@@ -323,36 +315,46 @@ const invitationService = {
     return { isValid: true }
   },
 
-  addUserToWorkspaceAndCleanup: async (
-    invitation: InvitationData,
-    userId: string
-  ): Promise<{ success: boolean; workspace?: any; error?: string }> => {
+  acceptInvitationAfterRegistration: async (
+    invitationId: string,
+    newUserId: string,
+    userEmail: string
+  ): Promise<AcceptInvitationResult> => {
     try {
-      // Add user in workspace
+      const invitation = await invitationDao.getInvitation(invitationId)
+
+      if (!invitation) {
+        return {
+          success: false,
+          error: 'Invitation not found or expired',
+        }
+      }
+
+      if (invitation.email !== userEmail) {
+        return {
+          success: false,
+          error: 'Invitation email does not match user email',
+        }
+      }
+
+      // Add user to workspace
       const updatedWorkspace = await workspaceDao.addMembersToWorkspace(
         invitation.workspaceId,
-        [userId]
+        [newUserId]
       )
 
-      // cleanup Redis invitation
-      await invitationDao.cleanupInvitation(invitation.id, invitation.email)
-
-      console.log(
-        `User ${userId} successfully added to workspace ${invitation.workspaceId}, invitation cleaned up`
-      )
+      // Cleanup invitation
+      await invitationDao.cleanupInvitation(invitationId, invitation.email)
 
       return {
         success: true,
         workspace: updatedWorkspace,
       }
     } catch (error) {
-      console.error(
-        'Failed to add user to workspace or cleanup invitation:',
-        error
-      )
+      console.error('Failed to accept invitation after registration:', error)
       return {
         success: false,
-        error: 'Failed to complete workspace addition',
+        error: 'Internal server error',
       }
     }
   },

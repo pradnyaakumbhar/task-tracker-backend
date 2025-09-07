@@ -56,6 +56,59 @@ const authcontroller = {
       return res.status(400).json({ error: error.message })
     }
   },
+
+  registerWithInvitation: async (req: Request, res: Response) => {
+    try {
+      const { name, email, password, invitationId } = req.body
+
+      // Input validation
+      if (!name || !email || !password) {
+        return res.status(400).json({
+          error: 'Name, email, and password are required',
+        })
+      }
+
+      if (!isValidEmail(email)) {
+        return res.status(400).json({
+          error: 'Invalid email address',
+        })
+      }
+      if (!isValidPassword(password)) {
+        return res.status(400).json({
+          error: 'Passowrd must be at least 6 characters long',
+        })
+      }
+
+      const result = await authService.registerUserWithInvitation({
+        name,
+        email,
+        password,
+        invitationId,
+      })
+
+      res.status(201).json({
+        message: 'Registration successful',
+        token: result.token,
+        user: result.user,
+        ...(result.workspace && { workspace: result.workspace }),
+        ...(result.workspace && { workspaceNumber: result.workspace.number }),
+        ...(result.invitationAccepted && { invitationAccepted: true }),
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Registration failed'
+
+      if (
+        errorMessage.includes('already exists') ||
+        errorMessage.includes('Invalid') ||
+        errorMessage.includes('expired')
+      ) {
+        return res.status(400).json({ error: errorMessage })
+      }
+
+      res.status(500).json({ error: 'Failed to create account' })
+    }
+  },
 }
 
 export default authcontroller
