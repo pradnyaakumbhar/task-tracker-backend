@@ -29,7 +29,7 @@ const taskService = {
 
   updateTask: async (
     taskId: string,
-    updateData: Partial<CreateTaskData>,
+    updateData: CreateTaskData,
     userId: string
   ) => {
     // Check if user can edit this task (assignee, reporter, or creator)
@@ -40,9 +40,16 @@ const taskService = {
       )
     }
 
-    const originalTask = await taskDao.findTaskById(taskId)
-    const updatedTask = await taskDao.updateTask(taskId, updateData)
+    const existingTask = await taskDao.findTaskById(taskId)
+    if (!existingTask) {
+      throw new Error('Task not found')
+    }
+    await workspaceService.validateWorkspaceAccess(
+      userId,
+      existingTask.space.workspace.id
+    )
 
+    const updatedTask = await taskDao.updateTask(taskId, updateData, userId)
     return updatedTask
   },
 

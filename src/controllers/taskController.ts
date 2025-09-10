@@ -20,7 +20,7 @@ const taskController = {
       } = req.body
       const creatorId = req.user!.userId
 
-      if (!title || !spaceId ) {
+      if (!title || !spaceId) {
         return res.status(400).json({
           error: 'Title and space ID are required',
         })
@@ -59,8 +59,8 @@ const taskController = {
         dueDate: dueDate ? new Date(dueDate) : undefined,
         spaceId,
         creatorId,
-        assigneeId, 
-        reporterId: reporterId || creatorId, 
+        assigneeId,
+        reporterId: reporterId || creatorId,
       }
 
       const task = await taskService.createTask(taskData, creatorId)
@@ -76,11 +76,12 @@ const taskController = {
           priority: task.priority,
           tags: task.tags,
           dueDate: task.dueDate,
+          version: task.version,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
           spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
           assignee: {
-            id: task.assignee?.id, 
+            id: task.assignee?.id,
             name: task.assignee?.name,
             email: task.assignee?.email,
           },
@@ -120,7 +121,7 @@ const taskController = {
       const task = await taskService.getTaskDetails(taskId, userId)
 
       res.status(200).json({
-        message: 'Task details retrieved successfully',
+        message: 'Task details fetched successfully',
         task: {
           id: task.id,
           title: task.title,
@@ -130,6 +131,7 @@ const taskController = {
           priority: task.priority,
           tags: task.tags,
           dueDate: task.dueDate,
+          version: task.version,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
           spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
@@ -174,7 +176,7 @@ const taskController = {
         return res.status(400).json({ error: 'Task ID is required' })
       }
 
-      // Validate priority 
+      // Validate priority
       if (updateData.priority) {
         const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
         if (!validPriorities.includes(updateData.priority)) {
@@ -185,7 +187,7 @@ const taskController = {
         }
       }
 
-      // Validate status 
+      // Validate status
       if (updateData.status) {
         const validStatuses = [
           'TODO',
@@ -220,6 +222,7 @@ const taskController = {
           priority: task.priority,
           tags: task.tags,
           dueDate: task.dueDate,
+          version: task.version,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
           spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
