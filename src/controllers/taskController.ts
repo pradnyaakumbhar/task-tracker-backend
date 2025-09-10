@@ -280,6 +280,49 @@ const taskController = {
       }
     }
   },
+
+  getTaskVersions: async (req: AuthRequest, res: Response) => {
+    try {
+      const { taskId } = req.body
+      const userId = req.user!.userId
+
+      if (!taskId) {
+        return res.status(400).json({ error: 'Task ID is required' })
+      }
+
+      const versions = await taskService.getTaskVersions(taskId, userId)
+      res.status(200).json({
+        message: 'Task versions retrieved successfully',
+        versions: versions.map((version) => ({
+          id: version.id,
+          version: version.version,
+          title: version.title,
+          description: version.description,
+          comment: version.comment,
+          status: version.status,
+          priority: version.priority,
+          tags: version.tags,
+          dueDate: version.dueDate,
+          taskNumber: generateNumbers.formatTaskNumber(version.taskNumber),
+          updateReason: version.updateReason,
+          updater: {
+            id: version.updater.id,
+            name: version.updater.name,
+            email: version.updater.email,
+          },
+          taskCreatedAt: version.taskCreatedAt,
+          versionCreatedAt: version.versionCreatedAt,
+        })),
+      })
+    } catch (error) {
+      console.error('Get task versions error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
 }
 
 export default taskController

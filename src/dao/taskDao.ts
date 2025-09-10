@@ -192,6 +192,16 @@ const taskDao = {
 
     return { message: 'Task deleted' }
   },
+
+  getTaskVersions: async (taskId: string) => {
+    return await prisma.taskVersion.findMany({
+      where: { taskId },
+      include: {
+        updater: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { version: 'desc' },
+    })
+  },
 }
 
 export default taskDao

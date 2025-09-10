@@ -62,6 +62,20 @@ const taskService = {
 
     return await taskDao.deleteTask(taskId)
   },
+
+  getTaskVersions: async (taskId: string, userId: string) => {
+    const task = await taskDao.findTaskById(taskId)
+    if (!task) {
+      throw new Error('Task not found')
+    }
+
+    await workspaceService.validateWorkspaceAccess(
+      userId,
+      task.space.workspace.id
+    )
+
+    return await taskDao.getTaskVersions(taskId)
+  },
 }
 
 export default taskService
