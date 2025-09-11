@@ -13,8 +13,8 @@ router.delete('/delete/:taskId', taskController.deleteTask)
 
 //all versions for task
 router.post('/versions', taskController.getTaskVersions)
-// dpecific version details
-// router.post('/versionDetails', taskController.getTaskVersion)
+// specific version details
+router.post('/versionDetails', taskController.getTaskVersionDetails)
 // revert to specific version
 // router.post('/version/revert', taskController.revertToVersion)
 

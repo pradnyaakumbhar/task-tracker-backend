@@ -202,6 +202,17 @@ const taskDao = {
       orderBy: { version: 'desc' },
     })
   },
+
+  getTaskVersionDetails: async (taskId: string, version: number) => {
+    return await prisma.taskVersion.findUnique({
+      where: {
+        taskId_version: { taskId, version },
+      },
+      include: {
+        updater: { select: { id: true, name: true, email: true } },
+      },
+    })
+  },
 }
 
 export default taskDao

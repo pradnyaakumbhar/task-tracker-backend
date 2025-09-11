@@ -76,6 +76,29 @@ const taskService = {
 
     return await taskDao.getTaskVersions(taskId)
   },
+
+  getTaskVersionDetails: async (
+    taskId: string,
+    version: number,
+    userId: string
+  ) => {
+    const task = await taskDao.findTaskById(taskId)
+    if (!task) {
+      throw new Error('Task not found')
+    }
+
+    await workspaceService.validateWorkspaceAccess(
+      userId,
+      task.space.workspace.id
+    )
+
+    const taskVersion = await taskDao.getTaskVersionDetails(taskId, version)
+    if (!taskVersion) {
+      throw new Error(`Version ${version} not found for this task`)
+    }
+
+    return taskVersion
+  },
 }
 
 export default taskService

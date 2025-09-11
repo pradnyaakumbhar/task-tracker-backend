@@ -323,6 +323,61 @@ const taskController = {
       }
     }
   },
+
+  getTaskVersionDetails: async (req: AuthRequest, res: Response) => {
+    try {
+      const { taskId, version } = req.params
+      const userId = req.user!.userId
+
+      if (!taskId || !version) {
+        return res
+          .status(400)
+          .json({ error: 'Task ID and version are required' })
+      }
+
+      const versionNumber = parseInt(version)
+      if (isNaN(versionNumber)) {
+        return res.status(400).json({ error: 'Version must be a number' })
+      }
+
+      const taskVersion = await taskService.getTaskVersionDetails(
+        taskId,
+        versionNumber,
+        userId
+      )
+
+      res.status(200).json({
+        message: 'Task version retrieved successfully',
+        version: {
+          id: taskVersion.id,
+          version: taskVersion.version,
+          title: taskVersion.title,
+          description: taskVersion.description,
+          comment: taskVersion.comment,
+          status: taskVersion.status,
+          priority: taskVersion.priority,
+          tags: taskVersion.tags,
+          dueDate: taskVersion.dueDate,
+          taskNumber: generateNumbers.formatTaskNumber(taskVersion.taskNumber),
+          updateReason: taskVersion.updateReason,
+          updater: {
+            id: taskVersion.updater.id,
+            name: taskVersion.updater.name,
+            email: taskVersion.updater.email,
+          },
+          taskCreatedAt: taskVersion.taskCreatedAt,
+          versionCreatedAt: taskVersion.versionCreatedAt,
+        },
+      })
+    } catch (error) {
+      console.error('Get task version error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
 }
 
 export default taskController
