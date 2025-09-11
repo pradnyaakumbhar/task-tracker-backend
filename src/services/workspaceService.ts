@@ -1,5 +1,5 @@
 import workspaceDao from '../dao/workspaceDao'
-import invitationDao from '../dao/invitationDao'
+import invitationService from '../services/invitationServices'
 import userDao from '../dao/userDao'
 
 const workspaceService = {
@@ -9,6 +9,7 @@ const workspaceService = {
     ownerId: string,
     memberEmails: string[]
   ) => {
+    // Create workspace
     const workspace = await workspaceDao.createWorkspace({
       name,
       description,
@@ -16,44 +17,38 @@ const workspaceService = {
       memberEmails,
     })
 
+    const owner = await userDao.findUserById(ownerId)
+    if (!owner) {
+      throw new Error('Owner not found')
+    }
+    // Send invitations to all member emails
     if (memberEmails.length > 0) {
-      // Find existing users
-      const existingUsers = await userDao.findUsersByEmails(memberEmails)
-      const existingUserEmails = existingUsers.map((user) => user.email)
-      const existingUserIds = existingUsers.map((user) => user.id)
-
-      // Add existing users directly to workspace
-      if (existingUserIds.length > 0) {
-        await workspaceDao.addMembersToWorkspace(workspace.id, existingUserIds)
-      }
-
-      // Create invitations for non-existing users
-      const newUserEmails = memberEmails.filter(
-        (email) => !existingUserEmails.includes(email)
-      )
-
-      for (const email of newUserEmails) {
+      for (const email of memberEmails) {
         try {
-          // Check if invitation already exists
-          const existingInvitation = await invitationDao.findExistingInvitation(
-            email,
-            workspace.id
-          )
-          if (!existingInvitation) {
-            await invitationDao.createInvitation({
+          const invitationResult =
+            await invitationService.createAndSendInvitation({
               email,
               workspaceId: workspace.id,
+              workspaceName: workspace.name,
+              senderName: owner.name,
+              senderId: owner.id,
             })
+          if (!invitationResult.success) {
+            console.error(
+              `Failed to send invitation to ${email}:`,
+              invitationResult.error
+            )
+          } else {
+            console.log(`Invitation sent successfully to ${email}`)
           }
         } catch (error) {
-          console.error(`Failed to create invitation for ${email}:`, error)
+          console.error(`Failed to send invitation to ${email}:`, error)
         }
       }
-      // Send email invites to all members
     }
+
     return workspace
   },
-
   getWorkspaceDetails: async (workspaceId: string, userId: string) => {
     // Check if user has access to this workspace
     const hasAccess = await workspaceDao.checkUserWorkspaceAccess(
