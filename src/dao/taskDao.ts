@@ -213,6 +213,92 @@ const taskDao = {
       },
     })
   },
+
+  revertToVersion: async (
+    taskId: string,
+    targetVersion: number,
+    userId: string,
+    reason?: string
+  ) => {
+    return await prisma.$transaction(async (tx) => {
+      // Get the target version data
+      const targetVersionData = await tx.taskVersion.findUnique({
+        where: {
+          taskId_version: { taskId, version: targetVersion },
+        },
+      })
+
+      if (!targetVersionData) {
+        throw new Error(`Version ${targetVersion} not found for task ${taskId}`)
+      }
+
+      // Get current task data to store in version table
+      const currentTask = await tx.task.findUnique({
+        where: { id: taskId },
+      })
+
+      if (!currentTask) {
+        throw new Error('Task not found')
+      }
+
+      const newVersion = currentTask.version + 1
+
+      // store current task
+      await tx.taskVersion.create({
+        data: {
+          taskId: currentTask.id,
+          version: currentTask.version,
+          title: currentTask.title,
+          description: currentTask.description,
+          comment: currentTask.comment,
+          status: currentTask.status,
+          priority: currentTask.priority,
+          tags: currentTask.tags,
+          dueDate: currentTask.dueDate,
+          taskNumber: currentTask.taskNumber,
+          spaceId: currentTask.spaceId,
+          creatorId: currentTask.creatorId,
+          assigneeId: currentTask.assigneeId,
+          reporterId: currentTask.reporterId,
+          taskCreatedAt: currentTask.createdAt,
+          updatedBy: userId,
+        },
+      })
+
+      // Update task with target version
+      const revertedTask = await tx.task.update({
+        where: { id: taskId },
+        data: {
+          title: targetVersionData.title,
+          description: targetVersionData.description,
+          comment: targetVersionData.comment,
+          status: targetVersionData.status,
+          priority: targetVersionData.priority,
+          tags: targetVersionData.tags,
+          dueDate: targetVersionData.dueDate,
+          assigneeId: targetVersionData.assigneeId,
+          reporterId: targetVersionData.reporterId,
+          version: newVersion,
+          updatedAt: new Date(),
+        },
+        include: {
+          creator: { select: { id: true, name: true, email: true } },
+          assignee: { select: { id: true, name: true, email: true } },
+          reporter: { select: { id: true, name: true, email: true } },
+          space: {
+            select: {
+              id: true,
+              name: true,
+              spaceNumber: true,
+              workspace: { select: { id: true, name: true, number: true } },
+            },
+          },
+        },
+      })
+
+      return revertedTask
+    })
+  },
 }
 
 export default taskDao

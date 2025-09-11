@@ -326,7 +326,7 @@ const taskController = {
 
   getTaskVersionDetails: async (req: AuthRequest, res: Response) => {
     try {
-      const { taskId, version } = req.params
+      const { taskId, version } = req.body
       const userId = req.user!.userId
 
       if (!taskId || !version) {
@@ -373,6 +373,76 @@ const taskController = {
       console.error('Get task version error:', error)
       if (error instanceof Error) {
         res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
+
+  revertToVersion: async (req: AuthRequest, res: Response) => {
+    try {
+      const { version, taskId } = req.body
+      const userId = req.user!.userId
+
+      if (!taskId) {
+        return res.status(400).json({ error: 'Task ID is required' })
+      }
+
+      if (!version) {
+        return res.status(400).json({ error: 'Version number is required' })
+      }
+
+      const versionNumber = parseInt(version)
+      if (isNaN(versionNumber)) {
+        return res.status(400).json({ error: 'Version must be a number' })
+      }
+
+      const task = await taskService.revertToVersion(
+        taskId,
+        versionNumber,
+        userId
+      )
+
+      res.status(200).json({
+        message: `Task reverted to version ${versionNumber} successfully`,
+        task: {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          comment: task.comment,
+          status: task.status,
+          priority: task.priority,
+          tags: task.tags,
+          dueDate: task.dueDate,
+          version: task.version,
+          taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
+          spaceNumber: task.space.spaceNumber,
+          workspaceNumber: task.space.workspace.number,
+          assignee: task.assignee
+            ? {
+                id: task.assignee.id,
+                name: task.assignee.name,
+                email: task.assignee.email,
+              }
+            : null,
+          reporter: {
+            id: task.reporter.id,
+            name: task.reporter.name,
+            email: task.reporter.email,
+          },
+          creator: {
+            id: task.creator.id,
+            name: task.creator.name,
+            email: task.creator.email,
+          },
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt,
+        },
+      })
+    } catch (error) {
+      console.error('Revert task error:', error)
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message })
       } else {
         res.status(500).json({ error: 'Internal server error' })
       }

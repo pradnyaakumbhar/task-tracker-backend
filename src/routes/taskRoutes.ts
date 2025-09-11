@@ -16,6 +16,6 @@ router.post('/versions', taskController.getTaskVersions)
 // specific version details
 router.post('/versionDetails', taskController.getTaskVersionDetails)
 // revert to specific version
-// router.post('/version/revert', taskController.revertToVersion)
+router.post('/version/revert', taskController.revertToVersion)
 
 export default router
