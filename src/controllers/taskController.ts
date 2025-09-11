@@ -20,7 +20,7 @@ const taskController = {
       } = req.body
       const creatorId = req.user!.userId
 
-      if (!title || !spaceId ) {
+      if (!title || !spaceId) {
         return res.status(400).json({
           error: 'Title and space ID are required',
         })
@@ -59,8 +59,8 @@ const taskController = {
         dueDate: dueDate ? new Date(dueDate) : undefined,
         spaceId,
         creatorId,
-        assigneeId, 
-        reporterId: reporterId || creatorId, 
+        assigneeId,
+        reporterId: reporterId || creatorId,
       }
 
       const task = await taskService.createTask(taskData, creatorId)
@@ -76,11 +76,12 @@ const taskController = {
           priority: task.priority,
           tags: task.tags,
           dueDate: task.dueDate,
+          version: task.version,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
           spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
           assignee: {
-            id: task.assignee?.id, 
+            id: task.assignee?.id,
             name: task.assignee?.name,
             email: task.assignee?.email,
           },
@@ -120,7 +121,7 @@ const taskController = {
       const task = await taskService.getTaskDetails(taskId, userId)
 
       res.status(200).json({
-        message: 'Task details retrieved successfully',
+        message: 'Task details fetched successfully',
         task: {
           id: task.id,
           title: task.title,
@@ -130,6 +131,7 @@ const taskController = {
           priority: task.priority,
           tags: task.tags,
           dueDate: task.dueDate,
+          version: task.version,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
           spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
@@ -174,7 +176,7 @@ const taskController = {
         return res.status(400).json({ error: 'Task ID is required' })
       }
 
-      // Validate priority 
+      // Validate priority
       if (updateData.priority) {
         const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
         if (!validPriorities.includes(updateData.priority)) {
@@ -185,7 +187,7 @@ const taskController = {
         }
       }
 
-      // Validate status 
+      // Validate status
       if (updateData.status) {
         const validStatuses = [
           'TODO',
@@ -220,6 +222,7 @@ const taskController = {
           priority: task.priority,
           tags: task.tags,
           dueDate: task.dueDate,
+          version: task.version,
           taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
           spaceNumber: task.space.spaceNumber,
           workspaceNumber: task.space.workspace.number,
@@ -272,6 +275,174 @@ const taskController = {
       console.error('Delete task error:', error)
       if (error instanceof Error) {
         res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
+
+  getTaskVersions: async (req: AuthRequest, res: Response) => {
+    try {
+      const { taskId } = req.body
+      const userId = req.user!.userId
+
+      if (!taskId) {
+        return res.status(400).json({ error: 'Task ID is required' })
+      }
+
+      const versions = await taskService.getTaskVersions(taskId, userId)
+      res.status(200).json({
+        message: 'Task versions retrieved successfully',
+        versions: versions.map((version) => ({
+          id: version.id,
+          version: version.version,
+          title: version.title,
+          description: version.description,
+          comment: version.comment,
+          status: version.status,
+          priority: version.priority,
+          tags: version.tags,
+          dueDate: version.dueDate,
+          taskNumber: generateNumbers.formatTaskNumber(version.taskNumber),
+          updateReason: version.updateReason,
+          updater: {
+            id: version.updater.id,
+            name: version.updater.name,
+            email: version.updater.email,
+          },
+          taskCreatedAt: version.taskCreatedAt,
+          versionCreatedAt: version.versionCreatedAt,
+        })),
+      })
+    } catch (error) {
+      console.error('Get task versions error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
+
+  getTaskVersionDetails: async (req: AuthRequest, res: Response) => {
+    try {
+      const { taskId, version } = req.body
+      const userId = req.user!.userId
+
+      if (!taskId || !version) {
+        return res
+          .status(400)
+          .json({ error: 'Task ID and version are required' })
+      }
+
+      const versionNumber = parseInt(version)
+      if (isNaN(versionNumber)) {
+        return res.status(400).json({ error: 'Version must be a number' })
+      }
+
+      const taskVersion = await taskService.getTaskVersionDetails(
+        taskId,
+        versionNumber,
+        userId
+      )
+
+      res.status(200).json({
+        message: 'Task version retrieved successfully',
+        version: {
+          id: taskVersion.id,
+          version: taskVersion.version,
+          title: taskVersion.title,
+          description: taskVersion.description,
+          comment: taskVersion.comment,
+          status: taskVersion.status,
+          priority: taskVersion.priority,
+          tags: taskVersion.tags,
+          dueDate: taskVersion.dueDate,
+          taskNumber: generateNumbers.formatTaskNumber(taskVersion.taskNumber),
+          updateReason: taskVersion.updateReason,
+          updater: {
+            id: taskVersion.updater.id,
+            name: taskVersion.updater.name,
+            email: taskVersion.updater.email,
+          },
+          taskCreatedAt: taskVersion.taskCreatedAt,
+          versionCreatedAt: taskVersion.versionCreatedAt,
+        },
+      })
+    } catch (error) {
+      console.error('Get task version error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
+
+  revertToVersion: async (req: AuthRequest, res: Response) => {
+    try {
+      const { version, taskId } = req.body
+      const userId = req.user!.userId
+
+      if (!taskId) {
+        return res.status(400).json({ error: 'Task ID is required' })
+      }
+
+      if (!version) {
+        return res.status(400).json({ error: 'Version number is required' })
+      }
+
+      const versionNumber = parseInt(version)
+      if (isNaN(versionNumber)) {
+        return res.status(400).json({ error: 'Version must be a number' })
+      }
+
+      const task = await taskService.revertToVersion(
+        taskId,
+        versionNumber,
+        userId
+      )
+
+      res.status(200).json({
+        message: `Task reverted to version ${versionNumber} successfully`,
+        task: {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          comment: task.comment,
+          status: task.status,
+          priority: task.priority,
+          tags: task.tags,
+          dueDate: task.dueDate,
+          version: task.version,
+          taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
+          spaceNumber: task.space.spaceNumber,
+          workspaceNumber: task.space.workspace.number,
+          assignee: task.assignee
+            ? {
+                id: task.assignee.id,
+                name: task.assignee.name,
+                email: task.assignee.email,
+              }
+            : null,
+          reporter: {
+            id: task.reporter.id,
+            name: task.reporter.name,
+            email: task.reporter.email,
+          },
+          creator: {
+            id: task.creator.id,
+            name: task.creator.name,
+            email: task.creator.email,
+          },
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt,
+        },
+      })
+    } catch (error) {
+      console.error('Revert task error:', error)
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message })
       } else {
         res.status(500).json({ error: 'Internal server error' })
       }

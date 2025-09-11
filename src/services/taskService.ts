@@ -29,7 +29,7 @@ const taskService = {
 
   updateTask: async (
     taskId: string,
-    updateData: Partial<CreateTaskData>,
+    updateData: CreateTaskData,
     userId: string
   ) => {
     // Check if user can edit this task (assignee, reporter, or creator)
@@ -40,9 +40,16 @@ const taskService = {
       )
     }
 
-    const originalTask = await taskDao.findTaskById(taskId)
-    const updatedTask = await taskDao.updateTask(taskId, updateData)
+    const existingTask = await taskDao.findTaskById(taskId)
+    if (!existingTask) {
+      throw new Error('Task not found')
+    }
+    await workspaceService.validateWorkspaceAccess(
+      userId,
+      existingTask.space.workspace.id
+    )
 
+    const updatedTask = await taskDao.updateTask(taskId, updateData, userId)
     return updatedTask
   },
 
@@ -54,6 +61,82 @@ const taskService = {
     }
 
     return await taskDao.deleteTask(taskId)
+  },
+
+  getTaskVersions: async (taskId: string, userId: string) => {
+    const task = await taskDao.findTaskById(taskId)
+    if (!task) {
+      throw new Error('Task not found')
+    }
+
+    await workspaceService.validateWorkspaceAccess(
+      userId,
+      task.space.workspace.id
+    )
+
+    return await taskDao.getTaskVersions(taskId)
+  },
+
+  getTaskVersionDetails: async (
+    taskId: string,
+    version: number,
+    userId: string
+  ) => {
+    const task = await taskDao.findTaskById(taskId)
+    if (!task) {
+      throw new Error('Task not found')
+    }
+
+    await workspaceService.validateWorkspaceAccess(
+      userId,
+      task.space.workspace.id
+    )
+
+    const taskVersion = await taskDao.getTaskVersionDetails(taskId, version)
+    if (!taskVersion) {
+      throw new Error(`Version ${version} not found for this task`)
+    }
+
+    return taskVersion
+  },
+
+  revertToVersion: async (
+    taskId: string,
+    targetVersion: number,
+    userId: string
+  ) => {
+    const canEdit = await taskDao.canUserEditTask(taskId, userId)
+    if (!canEdit) {
+      throw new Error(
+        'Only task creator, assignee, or reporter can revert this task'
+      )
+    }
+
+    const existingTask = await taskDao.findTaskById(taskId)
+    if (!existingTask) {
+      throw new Error('Task not found')
+    }
+
+    await workspaceService.validateWorkspaceAccess(
+      userId,
+      existingTask.space.workspace.id
+    )
+
+    const targetVersionData = await taskDao.getTaskVersionDetails(
+      taskId,
+      targetVersion
+    )
+    if (!targetVersionData) {
+      throw new Error(`Version ${targetVersion} not found for this task`)
+    }
+
+    const revertedTask = await taskDao.revertToVersion(
+      taskId,
+      targetVersion,
+      userId
+    )
+
+    return revertedTask
   },
 }
 
