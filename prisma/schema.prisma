@@ -9,34 +9,34 @@ datasource db {
 }
 
 model User {
-  id               String      @id @default(uuid())
-  name             String
-  email            String      @unique
-  password         String
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  assignedTasks    Task[]      @relation("TaskAssignee")
-  createdTasks     Task[]      @relation("TaskCreator")
-  reportedTasks    Task[]      @relation("TaskReporter")
-  ownedWorkspaces  Workspace[] @relation("WorkspaceOwner")
-  memberWorkspaces Workspace[] @relation("WorkspaceMember")
+  id                  String        @id @default(cuid())
+  name                String
+  email               String        @unique
+  password            String
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  assignedTasks       Task[]        @relation("TaskAssignee")
+  createdTasks        Task[]        @relation("TaskCreator")
+  reportedTasks       Task[]        @relation("TaskReporter")
+  ownedWorkspaces     Workspace[]   @relation("WorkspaceOwner")
+  memberWorkspaces    Workspace[]   @relation("WorkspaceMember")
+  updatedTaskVersions TaskVersion[] @relation("VersionUpdater")
 
   @@map("users")
 }
 
 model Workspace {
-  id           String       @id @default(uuid())
-  name         String
-  description  String?
-  number       String       @unique
-  memberEmails String[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  ownerId      String
-  invitations  Invitation[]
-  spaces       Space[]
-  owner        User         @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members      User[]       @relation("WorkspaceMember")
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  number      String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  ownerId     String
+  invitations Invitation[]
+  spaces      Space[]
+  owner       User         @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     User[]       @relation("WorkspaceMember")
 
   @@map("workspaces")
 }
@@ -45,7 +45,7 @@ model Space {
   id          String    @id @default(cuid())
   name        String
   description String?
-  spaceNumber String    
+  spaceNumber String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   workspaceId String
@@ -72,13 +72,47 @@ model Task {
   creatorId   String
   assigneeId  String?
   reporterId  String
+  version     Int        @default(1)
   assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
   creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
   reporter    User       @relation("TaskReporter", fields: [reporterId], references: [id])
   space       Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 
+  versions TaskVersion[]
+
   @@unique([spaceId, taskNumber])
+  @@index([version])
   @@map("tasks")
+}
+
+model TaskVersion {
+  id               String     @id @default(cuid())
+  taskId           String
+  version          Int
+  title            String
+  description      String?
+  comment          String?
+  status           TaskStatus
+  priority         Priority
+  tags             String[]
+  dueDate          DateTime?
+  taskNumber       Int
+  spaceId          String
+  creatorId        String
+  assigneeId       String?
+  reporterId       String
+  taskCreatedAt    DateTime
+  updatedBy        String
+  updateReason     String?
+  versionCreatedAt DateTime   @default(now())
+  task             Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  updater          User       @relation("VersionUpdater", fields: [updatedBy], references: [id])
+
+  @@unique([taskId, version])
+  @@index([taskId])
+  @@index([version])
+  @@index([versionCreatedAt])
+  @@map("task_versions")
 }
 
 model Invitation {
