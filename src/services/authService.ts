@@ -122,11 +122,18 @@ const authService = {
     // Check if user already exists
     const existingUser = await userDao.findUserByEmail(email)
     if (existingUser) {
-      throw new Error('USER_EXISTS')
+      throw new Error('User with this email already exists')
     }
 
+    // Hash password
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
     // Create user
-    const newUser = await userDao.createUser({ name, email, password })
+    const newUser = await userDao.createUser({
+      name,
+      email,
+      password: hashedPassword,
+    })
 
     // Generate JWT token
     const token = generateToken(newUser.id, newUser.email)
