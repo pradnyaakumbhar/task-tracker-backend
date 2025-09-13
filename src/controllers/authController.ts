@@ -1,114 +1,148 @@
 import { Request, Response } from 'express'
 import { isValidEmail, isValidPassword } from '../utils/validators'
 import authService from '../services/authService'
+import userDao from '../dao/userDao'
 
-const authcontroller = {
+const authController = {
   register: async (req: Request, res: Response) => {
-    try {
-      const { name, email, password } = req.body
-
-      if (!name || !email || !password) {
-        return res.status(400).json({
-          error: 'name, email and password are required',
-        })
-      }
-      if (!isValidEmail(email)) {
-        return res.status(400).json({
-          error: 'Invalid email',
-        })
-      }
-      if (!isValidPassword(password)) {
-        return res.status(400).json({
-          error: 'Passowrd must be at least 6 characters long',
-        })
-      }
-
-      const result = await authService.registerUser(name, email, password)
-
-      res.status(201).json({
-        message: 'User registered successfully',
-        token: result.token,
-        user: result.user,
-      })
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message })
-    }
-  },
-
-  login: async (req: Request, res: Response) => {
-    try {
-      const { email, password } = req.body
-
-      if (!email || !password) {
-        return res.status(400).json({
-          error: 'Email and Password are required',
-        })
-      }
-
-      const result = await authService.loginUser(email, password)
-
-      res.status(201).json({
-        message: 'Login successfull',
-        token: result.token,
-        user: result.user,
-      })
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message })
-    }
-  },
-
-  registerWithInvitation: async (req: Request, res: Response) => {
     try {
       const { name, email, password, invitationId } = req.body
 
-      // Input validation
       if (!name || !email || !password) {
         return res.status(400).json({
+          success: false,
           error: 'Name, email, and password are required',
         })
       }
 
       if (!isValidEmail(email)) {
-        return res.status(400).json({
-          error: 'Invalid email address',
-        })
+        return res
+          .status(400)
+          .json({ success: false, error: 'Invalid email format' })
       }
+
       if (!isValidPassword(password)) {
         return res.status(400).json({
-          error: 'Passowrd must be at least 6 characters long',
+          success: false,
+          error: 'Password must be at least 6 characters long',
         })
       }
 
-      const result = await authService.registerUserWithInvitation({
+      const result = await authService.registerUser({
         name,
         email,
         password,
         invitationId,
       })
 
-      res.status(201).json({
+      const response: any = {
+        success: result.success,
         message: 'Registration successful',
         token: result.token,
         user: result.user,
-        ...(result.workspace && { workspace: result.workspace }),
-        ...(result.workspace && { workspaceNumber: result.workspace.number }),
-        ...(result.invitationAccepted && { invitationAccepted: true }),
-      })
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Registration failed'
-
-      if (
-        errorMessage.includes('already exists') ||
-        errorMessage.includes('Invalid') ||
-        errorMessage.includes('expired')
-      ) {
-        return res.status(400).json({ error: errorMessage })
       }
 
-      res.status(500).json({ error: 'Failed to create account' })
+      if (result.workspace) {
+        response.workspace = result.workspace
+        response.workspaceNumber = result.workspace.number
+      }
+
+      if (result.invitationAccepted !== undefined) {
+        response.invitationAccepted = result.invitationAccepted
+      }
+
+      res.status(201).json(response)
+    } catch (error: any) {
+      console.error('Registration error:', error)
+
+      if (error.message.includes('already exists')) {
+        return res.status(409).json({ success: false, error: error.message })
+      }
+
+      if (
+        error.message.includes('Invalid') ||
+        error.message.includes('expired')
+      ) {
+        return res.status(400).json({ success: false, error: error.message })
+      }
+
+      return res
+        .status(500)
+        .json({ success: false, error: 'Registration failed' })
+    }
+  },
+
+  login: async (req: Request, res: Response) => {
+    try {
+      const { email, password, invitationId } = req.body
+
+      if (!email || !password) {
+        return res
+          .status(400)
+          .json({ success: false, error: 'Email and password are required' })
+      }
+
+      const result = await authService.loginUser({
+        email,
+        password,
+        invitationId,
+      })
+
+      const response: any = {
+        success: result.success,
+        message: 'Login successful',
+        token: result.token,
+        user: result.user,
+      }
+
+      if (result.workspace) {
+        response.workspace = result.workspace
+        response.workspaceNumber = result.workspace.number
+      }
+
+      if (result.invitationAccepted !== undefined) {
+        response.invitationAccepted = result.invitationAccepted
+      }
+
+      res.status(200).json(response)
+    } catch (error: any) {
+      console.error('Login error:', error)
+
+      if (error.message.includes('Invalid')) {
+        return res
+          .status(401)
+          .json({ success: false, error: 'Invalid email or password' })
+      }
+
+      return res.status(500).json({ success: false, error: 'Login failed' })
+    }
+  },
+
+  verify: async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body
+
+      if (!token) {
+        return res
+          .status(400)
+          .json({ success: false, error: 'Token is required' })
+      }
+
+      const decoded = authService.verifyToken(token)
+      const user = await userDao.findUserById(decoded.userId)
+
+      if (!user) {
+        return res.status(401).json({ success: false, error: 'User not found' })
+      }
+
+      res.json({
+        success: true,
+        user: { id: user.id, name: user.name, email: user.email },
+      })
+    } catch (error) {
+      res.status(401).json({ success: false, error: 'Invalid token' })
     }
   },
 }
 
-export default authcontroller
+export default authController

@@ -25,14 +25,13 @@ const workspaceService = {
     if (memberEmails.length > 0) {
       for (const email of memberEmails) {
         try {
-          const invitationResult =
-            await invitationService.createAndSendInvitation({
-              email,
-              workspaceId: workspace.id,
-              workspaceName: workspace.name,
-              senderName: owner.name,
-              senderId: owner.id,
-            })
+          const invitationResult = await invitationService.sendInvitation({
+            email,
+            workspaceId: workspace.id,
+            workspaceName: workspace.name,
+            senderName: owner.name,
+            senderId: owner.id,
+          })
           if (!invitationResult.success) {
             console.error(
               `Failed to send invitation to ${email}:`,
@@ -49,6 +48,7 @@ const workspaceService = {
 
     return workspace
   },
+
   getWorkspaceDetails: async (workspaceId: string, userId: string) => {
     // Check if user has access to this workspace
     const hasAccess = await workspaceDao.checkUserWorkspaceAccess(

@@ -3,7 +3,7 @@ import workspaceController from '../controllers/workspaceController'
 import { authenticateToken } from '../middleware/authMiddleware'
 
 const router = express.Router()
-router.use(authenticateToken) // Apply authentication to all workspace routes
+router.use(authenticateToken)
 
 router.post('/create', workspaceController.createWorkspace)
 router.post('/details', workspaceController.getWorkspaceDetails)

@@ -2,27 +2,30 @@ import invitationService from '../services/invitationServices'
 import { Request, Response } from 'express'
 import { AuthRequest } from '../types/authTypes'
 import { isValidEmail } from '../utils/validators'
+import jwt from 'jsonwebtoken'
 
-const invitationcontroller = {
+const invitationController = {
   sendInvitation: async (req: AuthRequest, res: Response) => {
     try {
       const { email, workspaceId, workspaceName } = req.body
       const sender = req.user!
 
-      // Validation
       if (!email || !workspaceId || !workspaceName) {
-        return res.status(400).json({
-          error: 'Email, workspaceId, and workspaceName are required',
-        })
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'Email, workspaceId, and workspaceName are required',
+          })
       }
 
       if (!isValidEmail(email)) {
-        return res.status(400).json({
-          error: 'Invalid email address',
-        })
+        return res
+          .status(400)
+          .json({ success: false, error: 'Invalid email address' })
       }
 
-      const result = await invitationService.createAndSendInvitation({
+      const result = await invitationService.sendInvitation({
         email,
         workspaceId,
         workspaceName,
@@ -31,69 +34,94 @@ const invitationcontroller = {
       })
 
       if (!result.success) {
-        return res.status(400).json({
-          error: result.error,
-        })
+        return res.status(400).json({ success: false, error: result.error })
       }
 
       res.status(201).json({
+        success: true,
         message: 'Invitation sent successfully',
         invitationId: result.invitationId,
+        userExists: result.userExists,
       })
     } catch (error: any) {
       console.error('Send invitation error:', error)
-      res.status(500).json({
-        error: 'Failed to send invitation',
-      })
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to send invitation' })
     }
   },
 
-  // email link
   handleInvitationLink: async (req: Request, res: Response) => {
     try {
       const { invitationId } = req.params
 
       if (!invitationId) {
-        return res.status(400).json({
-          error: 'Invitation ID is required',
-        })
+        return res
+          .status(400)
+          .json({ success: false, error: 'Invitation ID is required' })
       }
 
-      // Check if user has auth token in headers
+      let userId: string | undefined
+      let userEmail: string | undefined
+
       const authToken = req.headers.authorization?.replace('Bearer ', '')
 
-      const result = await invitationService.processInvitationLink(
-        invitationId,
-        authToken
-      )
-
-      // Include workspace number in response for frontend redirect
-      const response = {
-        ...result,
-        ...(result.workspace?.number && {
-          workspaceNumber: result.workspace.number,
-        }),
+      if (authToken) {
+        try {
+          const decoded = jwt.verify(authToken, process.env.JWT_SECRET!) as any
+          userId = decoded.userId
+          userEmail = decoded.email
+        } catch (error) {
+          // Invalid token - continue as unauthenticated
+        }
       }
 
-      res.status(200).json(response)
+      const result = await invitationService.joinInvitation(
+        invitationId,
+        userId,
+        userEmail
+      )
+
+      const response: any = {
+        action: result.action,
+        invitation: result.invitation,
+        message: result.message,
+        error: result.error,
+      }
+
+      if (result.workspace) {
+        response.workspace = result.workspace
+        response.workspaceNumber = result.workspace.number
+      } else if (result.workspaceNumber) {
+        response.workspaceNumber = result.workspaceNumber
+      }
+
+      let statusCode = 200
+      if (result.action === 'error') statusCode = 400
+      else if (result.action === 'expired') statusCode = 410
+
+      res.status(statusCode).json(response)
     } catch (error: any) {
       console.error('Handle invitation link error:', error)
-      res.status(500).json({
-        error: 'Failed to process invitation',
-      })
+      res
+        .status(500)
+        .json({
+          success: false,
+          action: 'error',
+          error: 'Failed to process invitation',
+        })
     }
   },
 
-  // when user is authenticated
   acceptInvitation: async (req: AuthRequest, res: Response) => {
     try {
       const { invitationId } = req.body
       const user = req.user!
 
       if (!invitationId) {
-        return res.status(400).json({
-          error: 'Invitation ID is required',
-        })
+        return res
+          .status(400)
+          .json({ success: false, error: 'Invitation ID is required' })
       }
 
       const result = await invitationService.acceptInvitation(
@@ -103,24 +131,22 @@ const invitationcontroller = {
       )
 
       if (!result.success) {
-        return res.status(400).json({
-          error: result.error,
-        })
+        return res.status(400).json({ success: false, error: result.error })
       }
 
-      // Include workspace number in response for frontend redirect
       res.status(200).json({
+        success: true,
         message: 'Invitation accepted successfully',
         workspace: result.workspace,
         workspaceNumber: result.workspace?.number,
       })
     } catch (error: any) {
       console.error('Accept invitation error:', error)
-      res.status(500).json({
-        error: 'Failed to accept invitation',
-      })
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to accept invitation' })
     }
   },
 }
 
-export default invitationcontroller
+export default invitationController

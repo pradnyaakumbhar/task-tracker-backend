@@ -1,28 +1,35 @@
-import { Request } from 'express';
+import { Request } from 'express'
 export interface Register {
-  name: string;
-  email: string;
-  password: string;
+  name: string
+  email: string
+  password: string
 }
 
 export interface Login {
-  email: string;
-  password: string;
+  email: string
+  password: string
 }
 
 export interface JWTPayload {
-  userId: string;
-  email: string;
-  iat?: number;
-  exp?: number;
+  userId: string
+  email: string
+  iat?: number
+  exp?: number
 }
 
 export interface AuthenticatedUser {
-  id: string;
-  name: string;
-  email: string;
+  id: string
+  name: string
+  email: string
 }
 
+// export interface AuthRequest extends Request {
+//   user?: any;
+// }
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    userId: string
+    email: string
+    name: string
+  }
 }
