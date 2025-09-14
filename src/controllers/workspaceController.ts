@@ -103,6 +103,66 @@ const workspaceController = {
       }
     }
   },
+
+  getWorkspaceDashboardData: async (req: AuthRequest, res: Response) => {
+    try {
+      const { workspaceId } = req.body
+      const userId = req.user!.userId
+
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace ID is required' })
+      }
+
+      const dashboardData = await workspaceService.getWorkspaceDashboardData(
+        workspaceId,
+        userId
+      )
+
+      res.status(200).json({
+        message: 'Workspace dashboard data fetched successfully',
+        data: {
+          todayTasks: dashboardData.todayTasks.map((task) => ({
+            id: task.id,
+            title: task.title,
+            priority: task.priority,
+            dueDate: task.dueDate,
+            taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
+            spaceName: task.space.name,
+            spaceNumber: task.space.spaceNumber,
+            assignee: task.assignee
+              ? {
+                  id: task.assignee.id,
+                  name: task.assignee.name,
+                }
+              : null,
+          })),
+          upcomingTasks: dashboardData.upcomingTasks.map((task) => ({
+            id: task.id,
+            title: task.title,
+            priority: task.priority,
+            dueDate: task.dueDate,
+            taskNumber: generateNumbers.formatTaskNumber(task.taskNumber),
+            spaceName: task.space.name,
+            spaceNumber: task.space.spaceNumber,
+            assignee: task.assignee
+              ? {
+                  id: task.assignee.id,
+                  name: task.assignee.name,
+                }
+              : null,
+          })),
+          spaceProgress: dashboardData.spaceProgress,
+        },
+      })
+    } catch (error) {
+      console.error('Get workspace dashboard data error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
 }
 
 export default workspaceController

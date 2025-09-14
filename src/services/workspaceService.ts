@@ -91,6 +91,52 @@ const workspaceService = {
     }
     return true
   },
+
+  getWorkspaceDashboardData: async (workspaceId: string, userId: string) => {
+    // Validate workspace access
+    await workspaceService.validateWorkspaceAccess(userId, workspaceId)
+
+    const [todayTasks, upcomingTasks, spacesWithTasks] = await Promise.all([
+      workspaceDao.getTodayDueTasks(workspaceId),
+      workspaceDao.getUpcomingTasks(workspaceId),
+      workspaceDao.getWorkspaceTasksWithStatus(workspaceId),
+    ])
+
+    // Calculate space progress
+    const spaceProgress = spacesWithTasks.map((space) => {
+      const statusCounts = space.tasks.reduce((acc, task) => {
+        acc[task.status] = (acc[task.status] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+
+      const completedTasks = statusCounts.DONE || 0
+      const inProgressTasks =
+        (statusCounts.IN_PROGRESS || 0) + (statusCounts.IN_REVIEW || 0)
+      const todoTasks = (statusCounts.TODO || 0) + (statusCounts.CANCELLED || 0)
+
+      const progressPercentage =
+        space._count.tasks > 0
+          ? Math.round((completedTasks / space._count.tasks) * 100)
+          : 0
+
+      return {
+        id: space.id,
+        name: space.name,
+        spaceNumber: space.spaceNumber,
+        totalTasks: space._count.tasks,
+        completedTasks,
+        inProgressTasks,
+        todoTasks,
+        progress: progressPercentage,
+      }
+    })
+
+    return {
+      todayTasks,
+      upcomingTasks,
+      spaceProgress,
+    }
+  },
 }
 
 export default workspaceService

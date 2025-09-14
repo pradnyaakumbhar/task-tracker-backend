@@ -8,5 +8,5 @@ router.use(authenticateToken)
 router.post('/create', workspaceController.createWorkspace)
 router.post('/details', workspaceController.getWorkspaceDetails)
 router.get('/spaces', workspaceController.getSpaces)
-
+router.post('/dashboardData', workspaceController.getWorkspaceDashboardData)
 export default router

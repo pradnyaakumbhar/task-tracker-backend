@@ -129,6 +129,100 @@ const workspaceDao = {
       orderBy: { spaceNumber: 'asc' },
     })
   },
+
+  getTodayDueTasks: async (workspaceId: string) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(today)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    return await prisma.task.findMany({
+      where: {
+        dueDate: {
+          gte: today,
+          lte: endOfDay,
+        },
+        space: {
+          workspaceId: workspaceId,
+        },
+        status: {
+          not: 'DONE',
+        },
+      },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true } },
+        reporter: { select: { id: true, name: true, email: true } },
+        space: {
+          select: {
+            id: true,
+            name: true,
+            spaceNumber: true,
+          },
+        },
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    })
+  },
+
+  getUpcomingTasks: async (workspaceId: string, days: number = 7) => {
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    const futureDate = new Date(today)
+    futureDate.setDate(futureDate.getDate() + days)
+    futureDate.setHours(23, 59, 59, 999)
+
+    return await prisma.task.findMany({
+      where: {
+        dueDate: {
+          gt: today,
+          lte: futureDate,
+        },
+        space: {
+          workspaceId: workspaceId,
+        },
+        status: {
+          not: 'DONE',
+        },
+      },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true } },
+        reporter: { select: { id: true, name: true, email: true } },
+        space: {
+          select: {
+            id: true,
+            name: true,
+            spaceNumber: true,
+          },
+        },
+      },
+      orderBy: [{ dueDate: 'asc' }, { priority: 'desc' }],
+    })
+  },
+
+  getWorkspaceTasksWithStatus: async (workspaceId: string) => {
+    return await prisma.space.findMany({
+      where: {
+        workspaceId: workspaceId,
+      },
+      select: {
+        id: true,
+        name: true,
+        spaceNumber: true,
+        _count: {
+          select: {
+            tasks: true,
+          },
+        },
+        tasks: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    })
+  },
 }
 
 export default workspaceDao
