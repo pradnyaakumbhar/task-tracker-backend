@@ -1,73 +1,8 @@
-// import nodemailer from 'nodemailer';
-// import { getInvitationEmailTemplate } from './emailTemplates'
-
-// const EMAIL_CONFIG = {
-//     host: process.env.SMTP_HOST,
-//     port: parseInt(process.env.SMTP_PORT || '587'),
-//     secure: false,
-//     auth: {
-//       user: process.env.SMTP_USER,
-//       pass: process.env.SMTP_PASS
-//     }
-//   };
-
-//   let transporter: nodemailer.Transporter | null = null;
-
-//   const createTransporter = () => {
-//     if (!transporter) {
-//       transporter = nodemailer.createTransport(EMAIL_CONFIG);
-//     }
-//     return transporter;
-//   };
-
-//   export const sendInvitationEmail = async (
-//     email: string,
-//     workspaceName: string,
-//     senderName: string,
-//     invitationId: string
-//   ): Promise<boolean> => {
-//     try {
-//       const transporter = createTransporter();
-
-//       const invitationLink = `${process.env.CLIENT_URL}/invitation/${invitationId}`;
-
-//       // Get email template
-//       const emailTemplate = getInvitationEmailTemplate(
-//         workspaceName,
-//         senderName,
-//         invitationLink
-//       );
-
-//       // Email options
-//       const mailOptions = {
-//         from: `${process.env.FROM_NAME || 'Your App Name'} <${process.env.FROM_EMAIL || EMAIL_CONFIG.auth.user}>`,
-//         to: email,
-//         subject: emailTemplate.subject,
-//         html: emailTemplate.html,
-//         text: emailTemplate.text
-//       };
-
-//       // Send email
-//       const result = await transporter.sendMail(mailOptions);
-
-//       console.log(`Invitation email sent successfully to ${email}`, {
-//         messageId: result.messageId,
-//         workspaceName,
-//         invitationId
-//       });
-
-//       return true;
-
-//     } catch (error) {
-//       console.error(`Failed to send invitation email to ${email}:`, error);
-//       return false;
-//     }
-//   };
-
 import nodemailer from 'nodemailer'
 import {
   getExistingUserInvitationTemplate,
   getNewUserInvitationTemplate,
+  getDueDateReminderTemplate,
 } from './emailTemplates'
 
 interface EmailTemplate {
@@ -84,10 +19,25 @@ interface EmailOptions {
   text: string
 }
 
+interface TaskReminderData {
+  taskId: string
+  taskTitle: string
+  taskNumber: string
+  dueDate: Date
+  assigneeEmail: string
+  assigneeName: string
+  reporterEmail?: string
+  reporterName?: string
+  workspaceName: string
+  spaceName: string
+  workspaceNumber: string
+  spaceNumber: string
+}
+
 const EMAIL_CONFIG = {
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true', // Convert string to boolean
+  secure: process.env.SMTP_SECURE === 'true',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -112,7 +62,6 @@ const createTransporter = (): nodemailer.Transporter => {
   return transporter
 }
 
-// Enhanced function with user existence parameter
 export const sendInvitationEmail = async (
   email: string,
   workspaceName: string,
@@ -165,33 +114,150 @@ export const sendInvitationEmail = async (
   }
 }
 
-export const sendEmail = async (options: {
-  to: string
-  subject: string
-  html: string
-  text: string
-}): Promise<boolean> => {
+export const sendDueDateReminder = async (
+  taskData: TaskReminderData,
+  daysLeft: number
+): Promise<{ assigneeSent: boolean; reporterSent: boolean }> => {
+  const results = { assigneeSent: false, reporterSent: false }
+
   try {
     const transporter = createTransporter()
 
-    const mailOptions: EmailOptions = {
-      from: `${process.env.FROM_NAME || 'Task Tracker'} <${
-        process.env.FROM_EMAIL || EMAIL_CONFIG.auth.user
-      }>`,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-      text: options.text,
+    // Send reminder to assignee
+    if (taskData.assigneeEmail) {
+      try {
+        const assigneeTemplate = getDueDateReminderTemplate(
+          taskData.taskTitle,
+          taskData.taskNumber,
+          taskData.dueDate,
+          taskData.workspaceName,
+          taskData.spaceName,
+          taskData.workspaceNumber,
+          taskData.spaceNumber,
+          taskData.assigneeName,
+          'assignee',
+          taskData.assigneeName,
+          daysLeft
+        )
+
+        const assigneeMailOptions: EmailOptions = {
+          from: `${process.env.FROM_NAME || 'Task Tracker'} <${
+            process.env.FROM_EMAIL || EMAIL_CONFIG.auth.user
+          }>`,
+          to: taskData.assigneeEmail,
+          subject: assigneeTemplate.subject,
+          html: assigneeTemplate.html,
+          text: assigneeTemplate.text,
+        }
+
+        const assigneeResult = await transporter.sendMail(assigneeMailOptions)
+        results.assigneeSent = true
+
+        console.log(
+          `Due date reminder sent to assignee ${taskData.assigneeEmail}`,
+          {
+            messageId: assigneeResult.messageId,
+            taskId: taskData.taskId,
+            role: 'assignee',
+            daysLeft,
+          }
+        )
+      } catch (error) {
+        console.error(
+          `Failed to send reminder to assignee ${taskData.assigneeEmail}:`,
+          error
+        )
+      }
     }
 
-    const result = await transporter.sendMail(mailOptions)
-    console.log(`Email sent successfully to ${options.to}`, {
-      messageId: result.messageId,
-    })
+    // Send reminder to reporter (if different from assignee)
+    if (
+      taskData.reporterEmail &&
+      taskData.reporterName &&
+      taskData.reporterEmail !== taskData.assigneeEmail
+    ) {
+      try {
+        const reporterTemplate = getDueDateReminderTemplate(
+          taskData.taskTitle,
+          taskData.taskNumber,
+          taskData.dueDate,
+          taskData.workspaceName,
+          taskData.spaceName,
+          taskData.workspaceNumber,
+          taskData.spaceNumber,
+          taskData.reporterName,
+          'reporter',
+          taskData.assigneeName,
+          daysLeft
+        )
 
-    return true
+        const reporterMailOptions: EmailOptions = {
+          from: `${process.env.FROM_NAME || 'Task Tracker'} <${
+            process.env.FROM_EMAIL || EMAIL_CONFIG.auth.user
+          }>`,
+          to: taskData.reporterEmail,
+          subject: reporterTemplate.subject,
+          html: reporterTemplate.html,
+          text: reporterTemplate.text,
+        }
+
+        const reporterResult = await transporter.sendMail(reporterMailOptions)
+        results.reporterSent = true
+
+        console.log(
+          `Due date reminder sent to reporter ${taskData.reporterEmail}`,
+          {
+            messageId: reporterResult.messageId,
+            taskId: taskData.taskId,
+            role: 'reporter',
+            daysLeft,
+          }
+        )
+      } catch (error) {
+        console.error(
+          `Failed to send reminder to reporter ${taskData.reporterEmail}:`,
+          error
+        )
+      }
+    }
+
+    return results
   } catch (error) {
-    console.error(`Failed to send email to ${options.to}:`, error)
-    return false
+    console.error(
+      `Failed to send due date reminders for task ${taskData.taskId}:`,
+      error
+    )
+    return results
   }
 }
+
+// export const sendEmail = async (options: {
+//   to: string
+//   subject: string
+//   html: string
+//   text: string
+// }): Promise<boolean> => {
+//   try {
+//     const transporter = createTransporter()
+
+//     const mailOptions: EmailOptions = {
+//       from: `${process.env.FROM_NAME || 'Task Tracker'} <${
+//         process.env.FROM_EMAIL || EMAIL_CONFIG.auth.user
+//       }>`,
+//       to: options.to,
+//       subject: options.subject,
+//       html: options.html,
+//       text: options.text,
+//     }
+
+//     const result = await transporter.sendMail(mailOptions)
+//     console.log(`Email sent successfully to ${options.to}`, {
+//       messageId: result.messageId,
+//     })
+
+//     return true
+//   } catch (error) {
+//     console.error(`Failed to send email to ${options.to}:`, error)
+//     return false
+//   }
+// }

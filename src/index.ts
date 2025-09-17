@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import prisma from './utils/prisma'
 import routes from './routes/index'
 import { connectRedis, disconnectRedis } from './utils/redis'
+import { startScheduler } from './services/dueDateReminder'
 
 dotenv.config()
 const app = express()
@@ -33,9 +34,18 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
 
+startScheduler()
 process.on('SIGINT', async () => {
   console.log('\n Shutting down...')
   await prisma.$disconnect()
   await disconnectRedis()
   process.exit(0)
 })
+// app.post('/api/trigger-reminders', async (req, res) => {
+//   try {
+//     await manualCheck()
+//     res.json({ message: 'Due date reminder check triggered successfully' })
+//   } catch (error) {
+//     console.error('Error triggering reminder check:', error)
+//   }
+// })

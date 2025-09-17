@@ -299,6 +299,67 @@ const taskDao = {
       return revertedTask
     })
   },
+
+  getTasksDueInRange: async (startDate: Date, endDate: Date) => {
+    const tasks = await prisma.task.findMany({
+      where: {
+        dueDate: {
+          gte: startDate,
+          lte: endDate,
+          not: null,
+        },
+        status: {
+          not: 'DONE',
+        },
+        OR: [
+          // has reoprter or asssignee
+          {
+            assignee: {
+              is: {},
+            },
+          },
+          {
+            reporter: {
+              is: {},
+            },
+          },
+        ],
+      },
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        reporter: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        space: {
+          select: {
+            spaceNumber: true,
+            name: true,
+            workspace: {
+              select: {
+                name: true,
+                number: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    // beacuse due date can be null in prisma schema, causing typeerror
+    return tasks.map((t) => ({
+      ...t,
+      dueDate: t.dueDate as Date,
+    }))
+  },
 }
 
 export default taskDao
