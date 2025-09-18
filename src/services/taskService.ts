@@ -138,6 +138,48 @@ const taskService = {
 
     return revertedTask
   },
+
+  getTaskAnalytics: async (workspaceId: string, userId: string) => {
+    await workspaceService.validateWorkspaceAccess(userId, workspaceId)
+
+    // Get task data
+    const tasks = await taskDao.getTaskAnalytics(workspaceId)
+
+    // Calculate status distribution
+    const statusCounts = tasks.reduce((acc, task) => {
+      acc[task.status] = (acc[task.status] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    // Calculate priority distribution
+    const priorityCounts = tasks.reduce((acc, task) => {
+      acc[task.priority] = (acc[task.priority] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    // convert into key value then map
+    const statusData = Object.entries(statusCounts).map(([status, count]) => ({
+      label: status,
+      value: count,
+      percentage:
+        tasks.length > 0 ? Math.round((count / tasks.length) * 100) : 0,
+    }))
+
+    const priorityData = Object.entries(priorityCounts).map(
+      ([priority, count]) => ({
+        label: priority,
+        value: count,
+        percentage:
+          tasks.length > 0 ? Math.round((count / tasks.length) * 100) : 0,
+      })
+    )
+
+    return {
+      totalTasks: tasks.length,
+      statusDistribution: statusData,
+      priorityDistribution: priorityData,
+    }
+  },
 }
 
 export default taskService

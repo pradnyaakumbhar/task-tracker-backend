@@ -360,6 +360,20 @@ const taskDao = {
       dueDate: t.dueDate as Date,
     }))
   },
+
+  getTaskAnalytics: async (workspaceId: string) => {
+    return await prisma.task.findMany({
+      where: {
+        space: {
+          workspaceId: workspaceId,
+        },
+      },
+      select: {
+        status: true,
+        priority: true,
+      },
+    })
+  },
 }
 
 export default taskDao

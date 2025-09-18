@@ -10,7 +10,7 @@ router.post('/create', taskController.createTask)
 router.post('/details', taskController.getTaskDetails)
 router.put('/update/:taskId', taskController.updateTask)
 router.delete('/delete/:taskId', taskController.deleteTask)
-
+router.post('/analytics', taskController.getTaskAnalytics)
 //all versions for task
 router.post('/versions', taskController.getTaskVersions)
 // specific version details

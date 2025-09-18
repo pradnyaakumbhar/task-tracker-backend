@@ -448,6 +448,31 @@ const taskController = {
       }
     }
   },
+
+  getTaskAnalytics: async (req: AuthRequest, res: Response) => {
+    try {
+      const { workspaceId } = req.body
+      const userId = req.user!.userId
+
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace ID is required' })
+      }
+
+      const analytics = await taskService.getTaskAnalytics(workspaceId, userId)
+
+      res.status(200).json({
+        message: 'Task analytics fetched successfully',
+        analytics,
+      })
+    } catch (error) {
+      console.error('Get task analytics error:', error)
+      if (error instanceof Error) {
+        res.status(403).json({ error: error.message })
+      } else {
+        res.status(500).json({ error: 'Internal server error' })
+      }
+    }
+  },
 }
 
 export default taskController
