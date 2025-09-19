@@ -1,7 +1,17 @@
 import userDao from '../dao/userDao'
 
+interface UserWithoutPassword {
+  id: string
+  name: string
+  email: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 const userService = {
-  getUserProfile: async (userId: string) => {
+  getUserProfile: async (
+    userId: string
+  ): Promise<UserWithoutPassword | null> => {
     return await userDao.findUserById(userId)
   },
 

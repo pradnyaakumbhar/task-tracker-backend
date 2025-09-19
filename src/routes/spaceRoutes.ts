@@ -4,11 +4,11 @@ import { authenticateToken } from '../middleware/authMiddleware'
 
 const router = express.Router()
 
-router.use(authenticateToken)
+// router.use(authenticateToken)
 
-router.post('/create', spaceController.createSpace)
-router.post('/tasks', spaceController.getTasks)
-router.delete('/delete/:id', spaceController.deleteSpace)
-router.put('/update', spaceController.updateSpace)
+router.post('/create', authenticateToken, spaceController.createSpace)
+router.post('/tasks', authenticateToken, spaceController.getTasks)
+router.delete('/delete/:id', authenticateToken, spaceController.deleteSpace)
+router.put('/update', authenticateToken, spaceController.updateSpace)
 
 export default router

@@ -6,16 +6,24 @@ const router = express.Router()
 
 router.use(authenticateToken)
 
-router.post('/create', taskController.createTask)
-router.post('/details', taskController.getTaskDetails)
-router.put('/update/:taskId', taskController.updateTask)
-router.delete('/delete/:taskId', taskController.deleteTask)
-router.post('/analytics', taskController.getTaskAnalytics)
+router.post('/create', authenticateToken, taskController.createTask)
+router.post('/details', authenticateToken, taskController.getTaskDetails)
+router.put('/update/:taskId', authenticateToken, taskController.updateTask)
+router.delete('/delete/:taskId', authenticateToken, taskController.deleteTask)
+router.post('/analytics', authenticateToken, taskController.getTaskAnalytics)
 //all versions for task
-router.post('/versions', taskController.getTaskVersions)
+router.post('/versions', authenticateToken, taskController.getTaskVersions)
 // specific version details
-router.post('/versionDetails', taskController.getTaskVersionDetails)
+router.post(
+  '/versionDetails',
+  authenticateToken,
+  taskController.getTaskVersionDetails
+)
 // revert to specific version
-router.post('/version/revert', taskController.revertToVersion)
+router.post(
+  '/version/revert',
+  authenticateToken,
+  taskController.revertToVersion
+)
 
 export default router

@@ -6,8 +6,8 @@ const router = express.Router()
 
 router.get('/join/:invitationId', invitationController.handleInvitationLink)
 
-router.use(authenticateToken)
-router.post('/send', invitationController.sendInvitation)
-router.post('/accept', invitationController.acceptInvitation)
+// router.use(authenticateToken)
+router.post('/send', authenticateToken, invitationController.sendInvitation)
+router.post('/accept', authenticateToken, invitationController.acceptInvitation)
 
 export default router
